@@ -1,0 +1,14 @@
+### API ###
+api/.venv/
+api/__pycache__/
+api/**/__pycache__/
+api/*.db
+api/.env
+
+### UI ###
+ui/node_modules/
+ui/dist/
+ui/.env
+
+### general ###
+.DS_Store
