@@ -10,5 +10,15 @@ ui/node_modules/
 ui/dist/
 ui/.env
 
+### contracts ###
+contracts/node_modules/
+contracts/.env
+contracts/cache/
+contracts/artifacts/
+
+### logs ###
+api/uvicorn.log
+ui/vite.log
+
 ### general ###
 .DS_Store

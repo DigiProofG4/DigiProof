@@ -67,7 +67,30 @@ export default function WarrantyDetail() {
           <dt>On-chain token</dt>
           <dd className="mono">{warranty.token_id || 'not minted yet'}</dd>
           <dt>Transaction</dt>
-          <dd className="mono truncate">{warranty.tx_hash || '—'}</dd>
+          <dd className="mono truncate">
+            {warranty.explorer_tx_url ? (
+              <a href={warranty.explorer_tx_url} target="_blank" rel="noreferrer">
+                {warranty.tx_hash}
+              </a>
+            ) : (
+              warranty.tx_hash || '—'
+            )}
+          </dd>
+          {warranty.block_number != null && (
+            <>
+              <dt>Block</dt>
+              <dd className="mono">{warranty.block_number}</dd>
+            </>
+          )}
+          {warranty.gas_fee_eth != null && (
+            <>
+              <dt>Gas fee</dt>
+              <dd className="mono">
+                {warranty.gas_fee_eth.toFixed(8)} ETH
+                <span className="muted"> ({warranty.gas_used.toLocaleString()} gas)</span>
+              </dd>
+            </>
+          )}
         </dl>
       </div>
 
