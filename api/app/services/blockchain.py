@@ -57,6 +57,9 @@ class MintResult:
     token_id: str
     tx_hash: str
     metadata_uri: str
+    gas_used: int | None = None
+    gas_price_wei: int | None = None
+    block_number: int | None = None
 
 
 class BlockchainService:
@@ -121,12 +124,15 @@ class BlockchainService:
                 })
                 signed = provider.eth.account.sign_transaction(tx, private_key=self.custodial_wallet_key)
                 tx_hash = provider.eth.send_raw_transaction(signed.raw_transaction)
-                provider.eth.wait_for_transaction_receipt(tx_hash)
+                receipt = provider.eth.wait_for_transaction_receipt(tx_hash)
                 token_id = contract.functions.totalSupply().call() - 1
                 return MintResult(
                     token_id=str(token_id),
-                    tx_hash=tx_hash.hex(),
+                    tx_hash=tx_hash.to_0x_hex(),
                     metadata_uri=metadata_uri,
+                    gas_used=receipt["gasUsed"],
+                    gas_price_wei=receipt.get("effectiveGasPrice"),
+                    block_number=receipt["blockNumber"],
                 )
             except Exception as exc:
                 raise RuntimeError(
@@ -167,7 +173,7 @@ class BlockchainService:
                 signed = provider.eth.account.sign_transaction(tx, private_key=self.custodial_wallet_key)
                 tx_hash = provider.eth.send_raw_transaction(signed.raw_transaction)
                 provider.eth.wait_for_transaction_receipt(tx_hash)
-                return tx_hash.hex()
+                return tx_hash.to_0x_hex()
             except Exception as exc:
                 raise RuntimeError(
                     "Live blockchain transfer failed. Check the recipient wallet address and contract configuration."

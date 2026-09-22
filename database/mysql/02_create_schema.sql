@@ -69,6 +69,9 @@ CREATE TABLE warranties (
     token_id              VARCHAR(80) NULL,
     tx_hash               VARCHAR(80) NULL,
     metadata_uri          VARCHAR(255) NULL,
+    gas_used              BIGINT NULL,
+    gas_price_wei         BIGINT NULL,
+    block_number          BIGINT NULL,
     created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_warranties_product FOREIGN KEY (product_id)
         REFERENCES products (id) ON DELETE CASCADE,

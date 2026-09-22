@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     chain_rpc_url: str = ""
     contract_address: str = ""
     custodial_wallet_key: str = ""
+    chain_explorer_tx_base_url: str = "https://sepolia.etherscan.io/tx/"
 
     @property
     def cors_origin_list(self) -> list[str]:

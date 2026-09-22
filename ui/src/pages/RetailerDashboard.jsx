@@ -133,7 +133,7 @@ export default function RetailerDashboard() {
                 <th>Product</th>
                 <th>Owner</th>
                 <th>Expires</th>
-                <th>Token</th>
+                <th>Gas fee</th>
               </tr>
             </thead>
             <tbody>
@@ -144,7 +144,9 @@ export default function RetailerDashboard() {
                   </td>
                   <td>{warranty.owner.email}</td>
                   <td>{warranty.expires_on}</td>
-                  <td className="mono">{warranty.token_id || '—'}</td>
+                  <td className="mono">
+                    {warranty.gas_fee_eth != null ? `${warranty.gas_fee_eth.toFixed(8)} ETH` : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

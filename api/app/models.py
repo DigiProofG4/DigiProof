@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -107,6 +107,10 @@ class Warranty(Base):
     token_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
     tx_hash: Mapped[str | None] = mapped_column(String(80), nullable=True)
     metadata_uri: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Only set in live-chain mode, from the mint transaction's receipt.
+    gas_used: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    gas_price_wei: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    block_number: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
