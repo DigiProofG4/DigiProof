@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
 
+from app.config import settings
 from app.models import Role, WarrantyStatus
 
 
@@ -96,9 +97,27 @@ class WarrantyOut(ORMModel):
     token_id: str | None
     tx_hash: str | None
     metadata_uri: str | None
+    gas_used: int | None
+    gas_price_wei: int | None
+    block_number: int | None
     created_at: datetime
     product: ProductOut
     owner: UserOut
+
+    @computed_field
+    @property
+    def gas_fee_eth(self) -> float | None:
+        """Total mint cost in native currency (ETH on Sepolia): gas_used * gas_price."""
+        if self.gas_used is None or self.gas_price_wei is None:
+            return None
+        return (self.gas_used * self.gas_price_wei) / 1_000_000_000_000_000_000
+
+    @computed_field
+    @property
+    def explorer_tx_url(self) -> str | None:
+        if not self.tx_hash or not settings.chain_explorer_tx_base_url:
+            return None
+        return f"{settings.chain_explorer_tx_base_url}{self.tx_hash}"
 
 
 class WarrantyDetail(WarrantyOut):

@@ -90,6 +90,9 @@ def issue_warranty(
     warranty.token_id = minted.token_id
     warranty.tx_hash = minted.tx_hash
     warranty.metadata_uri = pinned.uri
+    warranty.gas_used = minted.gas_used
+    warranty.gas_price_wei = minted.gas_price_wei
+    warranty.block_number = minted.block_number
     warranty.status = WarrantyStatus.ACTIVE
 
     db.add(
