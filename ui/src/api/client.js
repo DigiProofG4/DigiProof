@@ -40,6 +40,7 @@ export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
   me: () => request('/auth/me'),
+  updateMe: (payload) => request('/auth/me', { method: 'PATCH', body: payload }),
 
   listProducts: () => request('/products'),
   createProduct: (payload) => request('/products', { method: 'POST', body: payload }),

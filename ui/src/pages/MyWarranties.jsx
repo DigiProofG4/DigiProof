@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client.js'
+import WalletCard from '../components/WalletCard.jsx'
 
 export default function MyWarranties() {
   const [warranties, setWarranties] = useState([])
@@ -43,6 +44,7 @@ export default function MyWarranties() {
           </ul>
         )}
       </div>
+      <WalletCard />
     </div>
   )
 }

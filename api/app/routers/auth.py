@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import Retailer, Role, User
-from app.schemas import LoginRequest, RegisterRequest, TokenResponse, UserOut
+from app.schemas import LoginRequest, RegisterRequest, TokenResponse, UserOut, WalletUpdate
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -57,4 +57,17 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)) -> User:
+    return user
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(
+    payload: WalletUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> User:
+    """Customers key in their own wallet so transferred warranties land in it."""
+    user.wallet_address = payload.wallet_address
+    db.commit()
+    db.refresh(user)
     return user
