@@ -10,7 +10,7 @@ from app.database import get_db
 from app.deps import current_retailer_profile, get_current_user
 from app.models import Product, Retailer, Role, Transfer, User, Warranty, WarrantyStatus
 from app.schemas import TransferRequest, WarrantyDetail, WarrantyIssue, WarrantyOut
-from app.services.blockchain import blockchain
+from app.services.blockchain import ChainError, blockchain
 from app.services.notification import notification
 from app.services.storage import storage
 
@@ -172,9 +172,14 @@ def transfer_warranty(
     if new_owner.id == user.id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That is already the owner")
 
-    tx_hash = blockchain.transfer_warranty(
-        token_id=warranty.token_id or "", to_email=new_owner.email
-    )
+    try:
+        tx_hash = blockchain.transfer_warranty(
+            token_id=warranty.token_id or "",
+            to_email=new_owner.email,
+            to_address=payload.new_owner_wallet or new_owner.wallet_address,
+        )
+    except ChainError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
     db.add(
         Transfer(
             warranty_id=warranty.id,

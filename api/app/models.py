@@ -134,3 +134,5 @@ class Transfer(Base):
     transferred_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     warranty: Mapped[Warranty] = relationship(back_populates="transfers")
+    from_user: Mapped[User | None] = relationship(foreign_keys=[from_user_id])
+    to_user: Mapped[User] = relationship(foreign_keys=[to_user_id])

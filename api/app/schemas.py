@@ -12,6 +12,10 @@ class ORMModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# An Ethereum-style address as wallet apps show it: 0x plus 40 hex characters.
+WALLET_PATTERN = r"^0x[0-9a-fA-F]{40}$"
+
+
 # ---------------------------------------------------------------- auth
 
 
@@ -37,6 +41,18 @@ class UserOut(ORMModel):
     role: Role
     wallet_address: str | None = None
     created_at: datetime
+
+
+class UserBrief(ORMModel):
+    id: int
+    full_name: str
+    email: EmailStr
+
+
+class WalletUpdate(BaseModel):
+    """A user saves (or clears, with null) the wallet their warranties should go to."""
+
+    wallet_address: str | None = Field(default=None, pattern=WALLET_PATTERN)
 
 
 class TokenResponse(BaseModel):
@@ -83,8 +99,17 @@ class TransferOut(ORMModel):
     id: int
     from_user_id: int | None
     to_user_id: int
+    from_user: UserBrief | None = None
+    to_user: UserBrief
     tx_hash: str | None
     transferred_at: datetime
+
+    @computed_field
+    @property
+    def explorer_tx_url(self) -> str | None:
+        if not self.tx_hash or not settings.chain_explorer_tx_base_url:
+            return None
+        return f"{settings.chain_explorer_tx_base_url}{self.tx_hash}"
 
 
 class WarrantyOut(ORMModel):
@@ -126,3 +151,6 @@ class WarrantyDetail(WarrantyOut):
 
 class TransferRequest(BaseModel):
     new_owner_email: EmailStr
+    # The new owner's own wallet. Left out, the wallet saved on their account
+    # is used, and failing that the token stays in DigiProof custody.
+    new_owner_wallet: str | None = Field(default=None, pattern=WALLET_PATTERN)
