@@ -268,3 +268,40 @@ td {
   background: #fffaeb;
   color: #b54708;
 }
+
+button.secondary {
+  background: transparent;
+  color: var(--brand);
+  border: 1px solid var(--border);
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.wallet {
+  word-break: break-all;
+}
+
+.hint {
+  font-size: 0.8rem;
+}
+
+.narrow-form {
+  max-width: 460px;
+}
+
+.confirm p {
+  margin: 0 0 12px;
+}
+
+.confirm .details {
+  margin-bottom: 12px;
+}
+
+.notice {
+  background: #ecfdf3;
+  border-color: #abefc6;
+  color: #05603a;
+}
