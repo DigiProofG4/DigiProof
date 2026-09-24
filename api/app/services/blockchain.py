@@ -52,6 +52,10 @@ CONTRACT_ABI = [
 ]
 
 
+class ChainError(RuntimeError):
+    """A chain call failed; the message is safe to show to the user."""
+
+
 @dataclass
 class MintResult:
     token_id: str
@@ -147,13 +151,15 @@ class BlockchainService:
             metadata_uri=f"ipfs://placeholder/{uuid.uuid4().hex}",
         )
 
-    def transfer_warranty(self, *, token_id: str, to_email: str, to_address: str | None = None) -> str:
-        """Move a token to its new owner and return the transaction hash."""
+    def transfer_warranty(self, *, token_id: str, to_email: str, to_address: str | None = None) -> str | None:
+        """Move a token to its new owner and return the transaction hash.
+
+        Without a wallet address the token stays in custody and None comes
+        back: only the off-chain owner changes.
+        """
         if self.is_live:
-            if not to_address:
-                raise ValueError(
-                    "Live transfers need the recipient wallet address. Store it on the user record as wallet_address."
-                )
+            if not token_id:
+                raise ChainError("This warranty has not been minted yet, so it can't be transferred.")
             try:
                 from web3 import Web3
 
@@ -161,6 +167,27 @@ class BlockchainService:
                 from_address = self.wallet_address
                 if not from_address:
                     raise ValueError("Could not derive the custodial wallet address from the configured private key")
+                holder = contract.functions.ownerOf(int(token_id)).call()
+            except Exception as exc:
+                raise ChainError("Could not reach the blockchain. Try again in a moment.") from exc
+
+            # Once a token sits in a customer's own wallet only that wallet can
+            # move it; the custodial key has no approval over it.
+            if holder.lower() != from_address.lower():
+                raise ChainError(
+                    f"This warranty's token is already in wallet {holder}. "
+                    "DigiProof can't move it from there; send it from that wallet app instead."
+                )
+            if not to_address:
+                return None
+            # Mixed case carries an EIP-55 checksum that catches typos; all
+            # lower- or upper-case hex has none to check.
+            hex_part = to_address[2:]
+            mixed_case = hex_part != hex_part.lower() and hex_part != hex_part.upper()
+            if not Web3.is_address(to_address) or (mixed_case and not Web3.is_checksum_address(to_address)):
+                raise ChainError("That wallet address doesn't look right. Copy it again from the wallet app.")
+
+            try:
                 to_address = Web3.to_checksum_address(to_address)
                 tx = contract.functions.safeTransferFrom(
                     from_address,
@@ -175,8 +202,8 @@ class BlockchainService:
                 provider.eth.wait_for_transaction_receipt(tx_hash)
                 return tx_hash.to_0x_hex()
             except Exception as exc:
-                raise RuntimeError(
-                    "Live blockchain transfer failed. Check the recipient wallet address and contract configuration."
+                raise ChainError(
+                    "The blockchain transfer failed. Check the wallet address and try again."
                 ) from exc
 
         digest = hashlib.sha256(f"transfer:{token_id}:{to_email}".encode()).hexdigest()
