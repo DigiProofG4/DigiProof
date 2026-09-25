@@ -30,6 +30,10 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class WalletUpdate(BaseModel):
+    wallet_address: str = Field(min_length=42, max_length=42, pattern=r"^0x[a-fA-F0-9]{40}$")
+
+
 class UserOut(ORMModel):
     id: int
     email: EmailStr

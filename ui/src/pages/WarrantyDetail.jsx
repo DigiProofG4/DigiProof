@@ -3,6 +3,15 @@ import { useParams } from 'react-router-dom'
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 
+function decodeTokenMetadata(uri) {
+  if (!uri || !uri.startsWith('data:application/json;base64,')) return null
+  try {
+    return JSON.parse(atob(uri.split(',', 2)[1]))
+  } catch {
+    return null
+  }
+}
+
 export default function WarrantyDetail() {
   const { id } = useParams()
   const { user } = useAuth()
@@ -10,6 +19,9 @@ export default function WarrantyDetail() {
   const [error, setError] = useState('')
   const [transferEmail, setTransferEmail] = useState('')
   const [busy, setBusy] = useState(false)
+  const [contractAddress, setContractAddress] = useState(null)
+  const [walletBusy, setWalletBusy] = useState(false)
+  const [walletError, setWalletError] = useState('')
 
   function load() {
     api
@@ -19,6 +31,38 @@ export default function WarrantyDetail() {
   }
 
   useEffect(load, [id])
+  useEffect(() => {
+    api
+      .health()
+      .then((health) => setContractAddress(health.contract_address))
+      .catch(() => {})
+  }, [])
+
+  async function handleAddToWallet() {
+    setWalletError('')
+    if (!window.ethereum) {
+      setWalletError('No wallet found — install MetaMask first')
+      return
+    }
+    if (!contractAddress) {
+      setWalletError('Contract not deployed yet')
+      return
+    }
+    setWalletBusy(true)
+    try {
+      await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC721',
+          options: { address: contractAddress, tokenId: warranty.token_id },
+        },
+      })
+    } catch (err) {
+      setWalletError(err.message || 'Could not add to wallet')
+    } finally {
+      setWalletBusy(false)
+    }
+  }
 
   async function handleTransfer(event) {
     event.preventDefault()
@@ -39,6 +83,7 @@ export default function WarrantyDetail() {
   if (!warranty) return <p className="muted">Loading…</p>
 
   const isOwner = user?.id === warranty.owner.id
+  const tokenMetadata = decodeTokenMetadata(warranty.metadata_uri)
 
   return (
     <div className="stack">
@@ -47,6 +92,13 @@ export default function WarrantyDetail() {
           <h1>{warranty.product.name}</h1>
           <span className={`pill pill-${warranty.status}`}>{warranty.status}</span>
         </div>
+        {tokenMetadata?.image && (
+          <img
+            src={tokenMetadata.image}
+            alt={`${warranty.product.name} warranty certificate`}
+            style={{ width: 200, height: 200, borderRadius: 8, margin: '12px 0' }}
+          />
+        )}
         <dl className="details">
           <dt>Serial number</dt>
           <dd className="mono">{warranty.product.serial_number}</dd>
@@ -65,7 +117,18 @@ export default function WarrantyDetail() {
             </>
           )}
           <dt>On-chain token</dt>
-          <dd className="mono">{warranty.token_id || 'not minted yet'}</dd>
+          <dd className="mono">
+            {warranty.token_id || 'not minted yet'}
+            {warranty.token_id && (
+              <>
+                {' '}
+                <button className="link-button" onClick={handleAddToWallet} disabled={walletBusy}>
+                  {walletBusy ? 'Adding…' : 'Add to MetaMask'}
+                </button>
+                {walletError && <span className="error"> {walletError}</span>}
+              </>
+            )}
+          </dd>
           <dt>Transaction</dt>
           <dd className="mono truncate">
             {warranty.explorer_tx_url ? (

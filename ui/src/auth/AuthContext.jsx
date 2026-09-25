@@ -38,6 +38,11 @@ export function AuthProvider({ children }) {
         setUser(result.user)
         return result.user
       },
+      async connectWallet(walletAddress) {
+        const updated = await api.updateWallet({ wallet_address: walletAddress })
+        setUser(updated)
+        return updated
+      },
       logout() {
         setToken(null)
         setUser(null)

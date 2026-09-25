@@ -86,6 +86,7 @@ def issue_warranty(
         serial_number=product.serial_number,
         owner_email=customer.email,
         metadata={"cid": pinned.cid, "uri": pinned.uri},
+        owner_address=customer.wallet_address,
     )
     warranty.token_id = minted.token_id
     warranty.tx_hash = minted.tx_hash
@@ -173,7 +174,9 @@ def transfer_warranty(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That is already the owner")
 
     tx_hash = blockchain.transfer_warranty(
-        token_id=warranty.token_id or "", to_email=new_owner.email
+        token_id=warranty.token_id or "",
+        to_email=new_owner.email,
+        to_address=new_owner.wallet_address,
     )
     db.add(
         Transfer(

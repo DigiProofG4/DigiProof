@@ -37,9 +37,11 @@ async function request(path, { method = 'GET', body } = {}) {
 }
 
 export const api = {
+  health: () => request('/health'),
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
   me: () => request('/auth/me'),
+  updateWallet: (payload) => request('/auth/wallet', { method: 'PATCH', body: payload }),
 
   listProducts: () => request('/products'),
   createProduct: (payload) => request('/products', { method: 'POST', body: payload }),
