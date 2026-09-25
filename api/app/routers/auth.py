@@ -61,12 +61,13 @@ def me(user: User = Depends(get_current_user)) -> User:
 
 
 @router.patch("/me", response_model=UserOut)
-def update_me(
+@router.patch("/wallet", response_model=UserOut)
+def update_wallet(
     payload: WalletUpdate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> User:
-    """Customers key in their own wallet so transferred warranties land in it."""
+    """Link the customer's own wallet so transferred warranties and NFTs land in it."""
     user.wallet_address = payload.wallet_address
     db.commit()
     db.refresh(user)

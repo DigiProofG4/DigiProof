@@ -28,6 +28,13 @@ contract DigiProofWarranty is ERC721URIStorage, Ownable {
         _setTokenURI(tokenId, uri);
     }
 
+    /// Custodial move: lets the backend relocate a token regardless of who
+    /// currently holds it, since customers never hold keys or grant approvals.
+    function adminTransfer(address from, address to, uint256 tokenId) external onlyMinter {
+        if (ownerOf(tokenId) != from) revert ERC721IncorrectOwner(from, tokenId, ownerOf(tokenId));
+        _update(to, tokenId, address(0));
+    }
+
     function setMinter(address minter, bool allowed) external onlyOwner {
         authorizedMinters[minter] = allowed;
         emit MinterUpdated(minter, allowed);

@@ -86,6 +86,7 @@ def issue_warranty(
         serial_number=product.serial_number,
         owner_email=customer.email,
         metadata={"cid": pinned.cid, "uri": pinned.uri},
+        owner_address=customer.wallet_address,
     )
     warranty.token_id = minted.token_id
     warranty.tx_hash = minted.tx_hash

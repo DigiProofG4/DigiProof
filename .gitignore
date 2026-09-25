@@ -4,6 +4,8 @@ api/__pycache__/
 api/**/__pycache__/
 api/*.db
 api/.env
+api/.env.*
+!api/.env.example
 
 ### UI ###
 ui/node_modules/

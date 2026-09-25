@@ -32,6 +32,7 @@ def health() -> dict:
     return {
         "status": "ok",
         "chain_connected": blockchain.is_live,
+        "contract_address": blockchain.contract_address or None,
     }
 
 

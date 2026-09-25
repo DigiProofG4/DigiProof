@@ -29,6 +29,13 @@ CONTRACT_ABI = [
         "type": "function",
     },
     {
+        "inputs": [{"internalType": "address", "name": "from", "type": "address"}, {"internalType": "address", "name": "to", "type": "address"}, {"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
+        "name": "adminTransfer",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
         "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
         "name": "tokenURI",
         "outputs": [{"internalType": "string", "name": "", "type": "string"}],
@@ -106,8 +113,16 @@ class BlockchainService:
         contract = provider.eth.contract(address=self.contract_address, abi=CONTRACT_ABI)
         return provider, contract
 
-    def mint_warranty(self, *, serial_number: str, owner_email: str, metadata: dict) -> MintResult:
-        """Mint the proof-of-purchase NFT for a newly issued warranty."""
+    def mint_warranty(
+        self, *, serial_number: str, owner_email: str, metadata: dict, owner_address: str | None = None
+    ) -> MintResult:
+        """Mint the proof-of-purchase NFT for a newly issued warranty.
+
+        Mints straight to the customer's own wallet when they already have one
+        connected, so it shows up in their MetaMask immediately. Falls back to
+        the custodial wallet (the old behavior) when they don't have one yet —
+        a later transfer can still move it to them once they connect.
+        """
         if self.is_live:
             metadata_uri = metadata.get("uri") or f"ipfs://{metadata.get('cid', uuid.uuid4().hex)}"
             try:
@@ -117,11 +132,12 @@ class BlockchainService:
                 from_address = self.wallet_address
                 if not from_address:
                     raise ValueError("Could not derive the custodial wallet address from the configured private key")
+                mint_to = Web3.to_checksum_address(owner_address) if owner_address else from_address
 
-                gas_estimate = contract.functions.mintWarranty(from_address, metadata_uri).estimate_gas({
+                gas_estimate = contract.functions.mintWarranty(mint_to, metadata_uri).estimate_gas({
                     "from": from_address,
                 })
-                tx = contract.functions.mintWarranty(from_address, metadata_uri).build_transaction({
+                tx = contract.functions.mintWarranty(mint_to, metadata_uri).build_transaction({
                     "from": from_address,
                     "nonce": provider.eth.get_transaction_count(from_address),
                     "gas": gas_estimate,
@@ -171,13 +187,6 @@ class BlockchainService:
             except Exception as exc:
                 raise ChainError("Could not reach the blockchain. Try again in a moment.") from exc
 
-            # Once a token sits in a customer's own wallet only that wallet can
-            # move it; the custodial key has no approval over it.
-            if holder.lower() != from_address.lower():
-                raise ChainError(
-                    f"This warranty's token is already in wallet {holder}. "
-                    "DigiProof can't move it from there; send it from that wallet app instead."
-                )
             if not to_address:
                 return None
             # Mixed case carries an EIP-55 checksum that catches typos; all
@@ -189,8 +198,11 @@ class BlockchainService:
 
             try:
                 to_address = Web3.to_checksum_address(to_address)
-                tx = contract.functions.safeTransferFrom(
-                    from_address,
+                # Custodial move: the backend is the authorized minter, not
+                # necessarily the current holder, so use adminTransfer with
+                # whoever the contract says actually owns it right now.
+                tx = contract.functions.adminTransfer(
+                    holder,
                     to_address,
                     int(token_id),
                 ).build_transaction({
