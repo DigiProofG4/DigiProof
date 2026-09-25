@@ -1,0 +1,14 @@
+fastapi==0.115.6
+# Plain uvicorn, not uvicorn[standard]: the extra pulls httptools, which has no
+# Windows ARM64 wheel. Add [standard] back on x86_64 if you want the speedups.
+uvicorn==0.34.0
+sqlalchemy==2.0.36
+pydantic[email]==2.10.4
+pydantic-settings==2.7.0
+python-jose[cryptography]==3.3.0
+# bcrypt is used directly in app/security.py. passlib is gone: it is unmaintained
+# and breaks on bcrypt>=5, which is the first version with a Windows ARM64 wheel.
+bcrypt==5.0.0
+python-multipart==0.0.20
+pymysql==1.1.1
+web3==7.6.1
