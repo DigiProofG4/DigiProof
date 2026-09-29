@@ -36,6 +36,27 @@ async function request(path, { method = 'GET', body } = {}) {
   return data
 }
 
+// Uploaded photos come back as /uploads/...; they are served by the API, so in the
+// browser they sit behind the same /api prefix. External https:// links pass through.
+export function imageSrc(url) {
+  if (!url) return null
+  return url.startsWith('/') ? `${BASE}${url}` : url
+}
+
+async function upload(path, file) {
+  const body = new FormData()
+  body.append('file', file)
+  // No Content-Type header: the browser adds the multipart boundary itself.
+  const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {}
+  const response = await fetch(`${BASE}${path}`, { method: 'POST', headers, body })
+  const data = await response.json().catch(() => null)
+  if (!response.ok) {
+    const message = data?.detail || `Upload failed (${response.status})`
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message))
+  }
+  return data
+}
+
 export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
@@ -44,6 +65,11 @@ export const api = {
 
   listProducts: () => request('/products'),
   createProduct: (payload) => request('/products', { method: 'POST', body: payload }),
+  getProduct: (id) => request(`/products/${id}`),
+  uploadProductImage: (id, file) => upload(`/products/${id}/image`, file),
+  linkProductImage: (id, imageUrl) =>
+    request(`/products/${id}/image`, { method: 'PUT', body: { image_url: imageUrl } }),
+  removeProductImage: (id) => request(`/products/${id}/image`, { method: 'DELETE' }),
 
   listWarranties: () => request('/warranties'),
   getWarranty: (id) => request(`/warranties/${id}`),

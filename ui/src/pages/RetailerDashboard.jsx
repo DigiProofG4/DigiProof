@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client.js'
+import ProductImage from '../components/ProductImage.jsx'
+
+const IMAGE_TYPES = 'image/jpeg,image/png,image/webp'
+const EMPTY_FORM = { name: '', brand: '', model: '', serial_number: '', warranty_months: 12 }
 
 export default function RetailerDashboard() {
   const [products, setProducts] = useState([])
   const [warranties, setWarranties] = useState([])
-  const [form, setForm] = useState({
-    name: '',
-    brand: '',
-    model: '',
-    serial_number: '',
-    warranty_months: 12,
-  })
+  const [form, setForm] = useState(EMPTY_FORM)
+  // A product photo is optional: either a file to upload or a link to one hosted elsewhere.
+  const [imageMode, setImageMode] = useState('upload')
+  const [imageFile, setImageFile] = useState(null)
+  const [imageLink, setImageLink] = useState('')
+  const [fileInputKey, setFileInputKey] = useState(0)
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
   async function refresh() {
     try {
@@ -28,15 +32,34 @@ export default function RetailerDashboard() {
     refresh()
   }, [])
 
+  function resetImage() {
+    setImageFile(null)
+    setImageLink('')
+    setFileInputKey((key) => key + 1)
+  }
+
   async function addProduct(event) {
     event.preventDefault()
     setError('')
+    setBusy(true)
     try {
-      await api.createProduct({ ...form, warranty_months: Number(form.warranty_months) })
-      setForm({ name: '', brand: '', model: '', serial_number: '', warranty_months: 12 })
+      const payload = { ...form, warranty_months: Number(form.warranty_months) }
+      if (imageMode === 'link' && imageLink.trim()) payload.image_url = imageLink.trim()
+      const product = await api.createProduct(payload)
+      setForm(EMPTY_FORM)
+      if (imageMode === 'upload' && imageFile) {
+        try {
+          await api.uploadProductImage(product.id, imageFile)
+        } catch (err) {
+          setError(`Product added, but the photo was not saved: ${err.message}`)
+        }
+      }
+      resetImage()
       refresh()
     } catch (err) {
       setError(err.message)
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -81,8 +104,47 @@ export default function RetailerDashboard() {
               onChange={(e) => update('warranty_months', e.target.value)}
             />
           </label>
+          <div className="image-field">
+            Product image (optional)
+            <div className="tabs">
+              <button
+                type="button"
+                className={imageMode === 'upload' ? '' : 'secondary'}
+                onClick={() => setImageMode('upload')}
+              >
+                Upload photo
+              </button>
+              <button
+                type="button"
+                className={imageMode === 'link' ? '' : 'secondary'}
+                onClick={() => setImageMode('link')}
+              >
+                Image link
+              </button>
+            </div>
+            {imageMode === 'upload' ? (
+              <div className="preview">
+                <input
+                  key={fileInputKey}
+                  type="file"
+                  accept={IMAGE_TYPES}
+                  onChange={(e) => setImageFile(e.target.files[0] || null)}
+                />
+                <span className="hint">JPG, PNG or WebP, up to 5 MB</span>
+              </div>
+            ) : (
+              <input
+                type="url"
+                placeholder="https://…"
+                value={imageLink}
+                onChange={(e) => setImageLink(e.target.value)}
+              />
+            )}
+          </div>
           <div className="actions">
-            <button type="submit">Add product</button>
+            <button type="submit" disabled={busy}>
+              {busy ? 'Adding…' : 'Add product'}
+            </button>
           </div>
         </form>
         {error && <p className="error">{error}</p>}
@@ -101,6 +163,7 @@ export default function RetailerDashboard() {
           <table>
             <thead>
               <tr>
+                <th>Photo</th>
                 <th>Name</th>
                 <th>Serial</th>
                 <th>Cover</th>
@@ -109,12 +172,17 @@ export default function RetailerDashboard() {
             <tbody>
               {products.map((product) => (
                 <tr key={product.id}>
+                  <td className="photo-cell">
+                    <ProductImage product={product} size={48} />
+                  </td>
                   <td>
-                    {product.name}
-                    {product.model ? ` (${product.model})` : ''}
+                    <Link to={`/retailer/products/${product.id}`}>
+                      {product.name}
+                      {product.model ? ` (${product.model})` : ''}
+                    </Link>
                   </td>
                   <td className="mono">{product.serial_number}</td>
-                  <td>{product.warranty_months} months</td>
+                  <td className="nowrap">{product.warranty_months} months</td>
                 </tr>
               ))}
             </tbody>

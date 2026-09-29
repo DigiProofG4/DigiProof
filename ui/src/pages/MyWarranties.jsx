@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client.js'
 import WalletCard from '../components/WalletCard.jsx'
+import ProductImage from '../components/ProductImage.jsx'
 
 export default function MyWarranties() {
   const [warranties, setWarranties] = useState([])
@@ -31,6 +32,7 @@ export default function MyWarranties() {
           <ul className="list">
             {warranties.map((warranty) => (
               <li key={warranty.id}>
+                <ProductImage product={warranty.product} size={36} />{' '}
                 <Link to={`/warranties/${warranty.id}`}>
                   <strong>{warranty.product.name}</strong>
                 </Link>

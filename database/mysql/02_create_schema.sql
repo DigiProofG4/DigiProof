@@ -46,6 +46,7 @@ CREATE TABLE products (
     model           VARCHAR(120) NULL,
     serial_number   VARCHAR(120) NOT NULL UNIQUE,
     warranty_months INT NOT NULL DEFAULT 12,
+    image_url       VARCHAR(500) NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_products_retailer FOREIGN KEY (retailer_id)
         REFERENCES retailers (id) ON DELETE CASCADE,

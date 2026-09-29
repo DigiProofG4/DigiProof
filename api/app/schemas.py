@@ -70,6 +70,13 @@ class ProductCreate(BaseModel):
     brand: str | None = None
     model: str | None = None
     warranty_months: int = 12
+    # A link to a picture hosted elsewhere. Uploaded photos go through
+    # POST /products/{id}/image instead and fill this in themselves.
+    image_url: str | None = Field(default=None, max_length=500, pattern=r"^https?://\S+$")
+
+
+class ProductImageLink(BaseModel):
+    image_url: str = Field(max_length=500, pattern=r"^https?://\S+$")
 
 
 class ProductOut(ORMModel):
@@ -79,6 +86,7 @@ class ProductOut(ORMModel):
     model: str | None
     serial_number: str
     warranty_months: int
+    image_url: str | None = None
     created_at: datetime
 
 

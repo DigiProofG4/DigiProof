@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api } from '../api/client.js'
+import ProductImage from '../components/ProductImage.jsx'
 
 export default function Verify() {
   const [serial, setSerial] = useState('')
@@ -47,7 +48,10 @@ export default function Verify() {
       {result && (
         <dl className="details">
           <dt>Product</dt>
-          <dd>{result.product.name}</dd>
+          <dd className="product-name-cell">
+            <ProductImage product={result.product} size={56} />
+            {result.product.name}
+          </dd>
           <dt>Status</dt>
           <dd>
             <span className={`pill pill-${result.status}`}>{result.status}</span>

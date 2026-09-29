@@ -6,6 +6,7 @@ import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import RetailerDashboard from './pages/RetailerDashboard.jsx'
 import IssueWarranty from './pages/IssueWarranty.jsx'
+import ProductDetail from './pages/ProductDetail.jsx'
 import MyWarranties from './pages/MyWarranties.jsx'
 import WarrantyDetail from './pages/WarrantyDetail.jsx'
 import Verify from './pages/Verify.jsx'
@@ -31,6 +32,14 @@ export default function App() {
           element={
             <ProtectedRoute role="retailer">
               <RetailerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/retailer/products/:id"
+          element={
+            <ProtectedRoute role="retailer">
+              <ProductDetail />
             </ProtectedRoute>
           }
         />

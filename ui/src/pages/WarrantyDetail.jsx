@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { WALLET_HINT, WALLET_PATTERN } from '../components/WalletCard.jsx'
+import ProductImage from '../components/ProductImage.jsx'
 
 export default function WarrantyDetail() {
   const { id } = useParams()
@@ -62,7 +63,10 @@ export default function WarrantyDetail() {
     <div className="stack">
       <div className="card">
         <div className="row-between">
-          <h1>{warranty.product.name}</h1>
+          <div className="detail-hero">
+            <ProductImage product={warranty.product} size={72} />
+            <h1>{warranty.product.name}</h1>
+          </div>
           <span className={`pill pill-${warranty.status}`}>{warranty.status}</span>
         </div>
         <dl className="details">

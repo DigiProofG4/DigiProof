@@ -79,6 +79,9 @@ class Product(Base):
     model: Mapped[str | None] = mapped_column(String(120), nullable=True)
     serial_number: Mapped[str] = mapped_column(String(120), unique=True, index=True)
     warranty_months: Mapped[int] = mapped_column(Integer, default=12)
+    # Either an external https:// link or /uploads/products/<file> for a photo
+    # uploaded through POST /products/{id}/image.
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     retailer: Mapped[Retailer] = relationship(back_populates="products")

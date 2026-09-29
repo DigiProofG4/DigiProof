@@ -53,6 +53,7 @@ CREATE TABLE products (
     model            VARCHAR2(120),
     serial_number    VARCHAR2(120) NOT NULL,
     warranty_months  NUMBER DEFAULT 12 NOT NULL,
+    image_url        VARCHAR2(500),
     created_at       TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
     CONSTRAINT uq_products_serial UNIQUE (serial_number),
     CONSTRAINT fk_products_retailer FOREIGN KEY (retailer_id)
