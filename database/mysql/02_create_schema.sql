@@ -22,6 +22,8 @@ CREATE TABLE users (
     full_name      VARCHAR(120) NOT NULL,
     role           ENUM('retailer', 'customer') NOT NULL,
     wallet_address VARCHAR(64) NULL,
+    expiring_soon_days        INT NOT NULL DEFAULT 90,
+    date_format               VARCHAR(10) NOT NULL DEFAULT 'long',
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -93,6 +95,7 @@ CREATE TABLE transfers (
     from_user_id   INT NULL,
     to_user_id     INT NOT NULL,
     tx_hash        VARCHAR(80) NULL,
+    message        VARCHAR(200) NULL,
     transferred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_transfers_warranty FOREIGN KEY (warranty_id)
         REFERENCES warranties (id) ON DELETE CASCADE,

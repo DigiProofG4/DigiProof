@@ -26,6 +26,8 @@ CREATE TABLE users (
     full_name      VARCHAR2(120) NOT NULL,
     role           VARCHAR2(20)  NOT NULL,
     wallet_address VARCHAR2(64),
+    expiring_soon_days        NUMBER DEFAULT 90 NOT NULL,
+    date_format               VARCHAR2(10) DEFAULT 'long' NOT NULL,
     created_at     TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
     CONSTRAINT uq_users_email UNIQUE (email),
     CONSTRAINT ck_users_role CHECK (role IN ('retailer', 'customer'))
@@ -97,6 +99,7 @@ CREATE TABLE transfers (
     from_user_id   NUMBER,
     to_user_id     NUMBER NOT NULL,
     tx_hash        VARCHAR2(80),
+    message        VARCHAR2(200),
     transferred_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
     CONSTRAINT fk_transfers_warranty FOREIGN KEY (warranty_id)
         REFERENCES warranties (id) ON DELETE CASCADE,

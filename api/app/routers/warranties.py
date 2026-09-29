@@ -186,13 +186,19 @@ def transfer_warranty(
             from_user_id=user.id,
             to_user_id=new_owner.id,
             tx_hash=tx_hash,
+            message=(payload.message or "").strip() or None,
         )
     )
     warranty.owner_id = new_owner.id
     db.commit()
     db.refresh(warranty)
 
-    notification.ownership_transferred(to_email=new_owner.email, product_name=warranty.product.name)
+    notification.ownership_transferred(
+        to_email=new_owner.email,
+        product_name=warranty.product.name,
+        from_name=user.full_name,
+        message=(payload.message or "").strip() or None,
+    )
     return warranty
 
 

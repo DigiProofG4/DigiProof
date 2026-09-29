@@ -62,6 +62,8 @@ export const api = {
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
   me: () => request('/auth/me'),
   updateMe: (payload) => request('/auth/me', { method: 'PATCH', body: payload }),
+  changePassword: (payload) => request('/auth/me/password', { method: 'POST', body: payload }),
+  myTransactions: () => request('/auth/me/transactions'),
 
   listProducts: () => request('/products'),
   createProduct: (payload) => request('/products', { method: 'POST', body: payload }),

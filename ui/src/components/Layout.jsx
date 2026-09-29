@@ -10,7 +10,9 @@ export default function Layout({ children }) {
   const { pathname } = useLocation()
   const isLanding = !user && pathname === '/'
   const isVerify = pathname === '/verify'
-  const isWelcome = isVerify || (!user && ['/', '/login', '/register'].includes(pathname))
+  const isOwnerHome = pathname.startsWith('/warranties') || pathname === '/account'
+  const isWelcome =
+    isVerify || isOwnerHome || (!user && ['/', '/login', '/register'].includes(pathname))
 
   function handleLogout() {
     logout()
@@ -34,6 +36,7 @@ export default function Layout({ children }) {
           )}
           {user && !isRetailer && <NavLink to="/warranties">My warranties</NavLink>}
           <NavLink to="/verify">Verify</NavLink>
+          {user && <NavLink to="/account">Account</NavLink>}
           {user ? (
             <button className="link-button" onClick={handleLogout}>
               Sign out ({user.full_name})

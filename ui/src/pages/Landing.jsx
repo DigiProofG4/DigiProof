@@ -4,8 +4,8 @@ import { ShieldIcon } from '../components/Logo.jsx'
 const FEATURES = [
   {
     tone: 'blue',
-    title: 'Secure Warranty Records',
-    text: 'Your product warranties are stored on the blockchain.',
+    title: 'Access your warranties',
+    text: 'View all NFTs linked to your wallet',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
@@ -15,8 +15,8 @@ const FEATURES = [
   },
   {
     tone: 'green',
-    title: 'Verified Ownership',
-    text: 'Prove ownership and view your warranties anytime.',
+    title: 'Trusted and secure',
+    text: 'Stored on blockchain. Tamper-proof.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
         <path d="M12 2 20 5v6c0 5.5-3.4 9.4-8 11-4.6-1.6-8-5.5-8-11V5l8-3Z" />
@@ -25,8 +25,8 @@ const FEATURES = [
   },
   {
     tone: 'purple',
-    title: 'Easy Warranty Management',
-    text: 'File claims, transfer ownership and more, all in one place.',
+    title: 'Start managing',
+    text: 'File claims, transfer ownership and more',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
         <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
@@ -116,6 +116,22 @@ export default function Landing() {
             </div>
           </div>
         ))}
+      </section>
+
+      <section className="landing-banner">
+        <span className="landing-banner-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48">
+            <path d="M24 5 42 14v20L24 43 6 34V14Z" fill="#4f8df7" />
+            <path d="M24 5 42 14 24 23 6 14Z" fill="#9cc0fb" />
+            <path d="M24 23v20l18-9V14Z" fill="#1d5fe0" />
+            <path d="M15 9.5 33 18.5v7l-4 2v-7L11 11.5Z" fill="#e3edfe" />
+          </svg>
+        </span>
+        <p>
+          From everyday products to big purchases,
+          <br />
+          DigiProof keeps your warranties in one secure place.
+        </p>
       </section>
     </div>
   )

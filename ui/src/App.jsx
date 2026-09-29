@@ -11,6 +11,7 @@ import MyWarranties from './pages/MyWarranties.jsx'
 import WarrantyDetail from './pages/WarrantyDetail.jsx'
 import Verify from './pages/Verify.jsx'
 import Landing from './pages/Landing.jsx'
+import Account from './pages/Account.jsx'
 
 function Home() {
   const { user, loading } = useAuth()
@@ -57,6 +58,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <MyWarranties />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/account"
+          element={
+            <ProtectedRoute>
+              <Account />
             </ProtectedRoute>
           }
         />

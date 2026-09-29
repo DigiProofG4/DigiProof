@@ -46,6 +46,11 @@ class User(Base):
     role: Mapped[Role] = mapped_column(enum_column(Role), default=Role.CUSTOMER)
     # Optional: a customer who wants the NFT in their own wallet instead of custody.
     wallet_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    # Account settings, edited on the Account page.
+    expiring_soon_days: Mapped[int] = mapped_column(Integer, default=90)
+    date_format: Mapped[str] = mapped_column(String(10), default="long")
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     retailer: Mapped[Retailer | None] = relationship(back_populates="user", uselist=False)
@@ -119,6 +124,7 @@ class Warranty(Base):
 
     product: Mapped[Product] = relationship(back_populates="warranty")
     owner: Mapped[User] = relationship(back_populates="warranties", foreign_keys=[owner_id])
+    issued_by: Mapped[Retailer] = relationship(foreign_keys=[issued_by_retailer_id])
     transfers: Mapped[list[Transfer]] = relationship(
         back_populates="warranty", order_by="Transfer.transferred_at"
     )
@@ -134,6 +140,8 @@ class Transfer(Base):
     from_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     to_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     tx_hash: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # Optional note from the previous owner, e.g. "Enjoy your new product!"
+    message: Mapped[str | None] = mapped_column(String(200), nullable=True)
     transferred_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     warranty: Mapped[Warranty] = relationship(back_populates="transfers")
