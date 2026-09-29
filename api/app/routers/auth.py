@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import Retailer, Role, Transfer, User
+from app.models import Retailer, Role, Transfer, User, Warranty
 from app.schemas import (
     LoginRequest,
     PasswordChange,
@@ -79,10 +79,18 @@ def update_me(
     """Update profile, wallet or settings. Fields left out of the request stay as they are."""
     changes = payload.model_dump(exclude_unset=True)
 
-    # null is how the wallet card disconnects a wallet; for everything else it means "no change".
+    # null is how the wallet card disconnects a wallet (and clears a registration
+    # number); for everything else it means "no change".
     for field, value in list(changes.items()):
-        if value is None and field != "wallet_address":
+        if value is None and field not in ("wallet_address", "registration_number"):
             del changes[field]
+
+    business = {key: changes.pop(key) for key in ("business_name", "registration_number") if key in changes}
+    if business:
+        if user.retailer is None:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Only retailer accounts have business details")
+        for field, value in business.items():
+            setattr(user.retailer, field, value.strip() if isinstance(value, str) else value)
 
     new_email = changes.get("email")
     if new_email and new_email != user.email:
@@ -115,16 +123,30 @@ def my_transactions(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[TransactionOut]:
-    """Mints and transfers on warranties this user received or passed on, newest first."""
-    transfers = (
-        db.query(Transfer)
-        .filter(or_(Transfer.to_user_id == user.id, Transfer.from_user_id == user.id))
-        .order_by(Transfer.transferred_at.desc())
-        .all()
-    )
+    """Mints and transfers on warranties this user received or passed on, newest first.
+
+    For a retailer: every warranty their shop minted, with the customer it went to.
+    """
+    if user.retailer is not None:
+        transfers = (
+            db.query(Transfer)
+            .join(Warranty, Warranty.id == Transfer.warranty_id)
+            .filter(Warranty.issued_by_retailer_id == user.retailer.id, Transfer.from_user_id.is_(None))
+            .order_by(Transfer.transferred_at.desc())
+            .all()
+        )
+    else:
+        transfers = (
+            db.query(Transfer)
+            .filter(or_(Transfer.to_user_id == user.id, Transfer.from_user_id == user.id))
+            .order_by(Transfer.transferred_at.desc())
+            .all()
+        )
     history = []
     for transfer in transfers:
-        if transfer.from_user_id is None:
+        if user.retailer is not None:
+            kind, other = "issued", transfer.to_user
+        elif transfer.from_user_id is None:
             kind, other = "minted", None
         elif transfer.to_user_id == user.id:
             kind, other = "received", transfer.from_user

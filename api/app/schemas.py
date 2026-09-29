@@ -43,6 +43,9 @@ class UserOut(ORMModel):
     wallet_address: str | None = None
     expiring_soon_days: int = 90
     date_format: str = "long"
+    # Retailers only.
+    business_name: str | None = None
+    registration_number: str | None = None
     created_at: datetime
 
 
@@ -61,6 +64,9 @@ class ProfileUpdate(BaseModel):
     wallet_address: str | None = Field(default=None, pattern=WALLET_PATTERN)
     expiring_soon_days: Literal[30, 60, 90, 180] | None = None
     date_format: Literal["long", "iso"] | None = None
+    # Retailers only; registration_number may be sent as null to clear it.
+    business_name: str | None = Field(default=None, min_length=1, max_length=160)
+    registration_number: str | None = Field(default=None, max_length=80)
 
 
 class PasswordChange(BaseModel):
@@ -71,7 +77,7 @@ class PasswordChange(BaseModel):
 class TransactionOut(BaseModel):
     """One on-chain event on a warranty the user was part of."""
 
-    kind: Literal["minted", "received", "sent"]
+    kind: Literal["issued", "minted", "received", "sent"]
     warranty_id: int
     product_name: str
     counterparty: str | None

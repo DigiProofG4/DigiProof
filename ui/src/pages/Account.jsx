@@ -80,12 +80,19 @@ const ICONS = {
       <path d="m9 6 6 6-6 6" />
     </Icon>
   ),
+  store: (
+    <Icon>
+      <path d="M3 9 5 4h14l2 5M3 9v11h18V9M3 9h18" />
+      <path d="M9 20v-6h6v6" />
+    </Icon>
+  ),
 }
 
 const MENU = [
   { key: 'profile', tone: 'blue', icon: ICONS.person, title: 'Profile Information', text: 'Manage your personal information' },
+  { key: 'business', retailerOnly: true, tone: 'amber', icon: ICONS.store, title: 'Business Information', text: 'Business name and registration number' },
   { key: 'security', tone: 'green', icon: ICONS.lock, title: 'Security', text: 'Update password and security settings' },
-  { key: 'history', tone: 'purple', icon: ICONS.receipt, title: 'Transaction History', text: 'View your on-chain transactions' },
+  { key: 'history', tone: 'purple', icon: ICONS.receipt, title: 'Transaction History', retailerTitle: 'Minting History', text: 'View your on-chain transactions', retailerText: 'Warranties your shop minted on-chain' },
   { key: 'settings', tone: 'slate', icon: ICONS.gear, title: 'App Settings', text: 'Date format and dashboard preferences' },
   { key: 'help', tone: 'red', icon: ICONS.help, title: 'Help & Support', text: 'Get help or contact our support team' },
 ]
@@ -95,7 +102,7 @@ function shortAddress(address) {
 }
 
 export default function Account() {
-  const { user, logout } = useAuth()
+  const { user, logout, isRetailer } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(null)
 
@@ -113,38 +120,45 @@ export default function Account() {
       <header className="account-head">
         <span className="account-head-icon">{ICONS.gear}</span>
         <div>
-          <h1>Account &amp; Wallet</h1>
-          <p>Manage your profile, wallet and app settings.</p>
+          <h1>{isRetailer ? 'Account & Business' : 'Account & Wallet'}</h1>
+          <p>
+            {isRetailer
+              ? 'Manage your profile, business details and app settings.'
+              : 'Manage your profile, wallet and app settings.'}
+          </p>
         </div>
       </header>
 
       <section className="account-card account-profile">
         <span className="account-avatar">{ICONS.person}</span>
         <div className="grow">
-          <strong>{user.full_name}</strong>
-          <span>{user.email}</span>
+          <strong>{isRetailer ? user.business_name : user.full_name}</strong>
+          <span>
+            {isRetailer && user.full_name !== user.business_name ? `${user.full_name} · ${user.email}` : user.email}
+          </span>
         </div>
         <button type="button" className="account-outline" onClick={() => setOpen('profile')}>
           {ICONS.pencil} Edit Profile
         </button>
       </section>
 
-      <WalletPanel />
+      {isRetailer ? <BusinessCard onEdit={() => setOpen('business')} /> : <WalletPanel />}
 
       <section className="account-card account-menu">
-        {MENU.map((item) => (
+        {MENU.filter((item) => isRetailer || !item.retailerOnly).map((item) => (
           <div key={item.key} className={open === item.key ? 'account-item open' : 'account-item'}>
             <button type="button" className="account-row" onClick={() => toggle(item.key)} aria-expanded={open === item.key}>
               <span className={`account-row-icon ${item.tone}`}>{item.icon}</span>
               <span className="grow">
-                <strong>{item.title}</strong>
-                <span>{item.text}</span>
+                <strong>{(isRetailer && item.retailerTitle) || item.title}</strong>
+                <span>{(isRetailer && item.retailerText) || item.text}</span>
               </span>
               <span className="account-chevron">{ICONS.chevron}</span>
             </button>
             {open === item.key && (
               <div className="account-panel">
                 {item.key === 'profile' && <ProfilePanel onDone={() => setOpen(null)} />}
+                {item.key === 'business' && <BusinessPanel onDone={() => setOpen(null)} />}
                 {item.key === 'security' && <SecurityPanel />}
                 {item.key === 'history' && <HistoryPanel />}
                 {item.key === 'settings' && <SettingsPanel />}
@@ -383,7 +397,7 @@ function SecurityPanel() {
   )
 }
 
-const KIND_LABELS = { minted: 'Minted to you', received: 'Received', sent: 'Sent' }
+const KIND_LABELS = { issued: 'Issued', minted: 'Minted to you', received: 'Received', sent: 'Sent' }
 
 function HistoryPanel() {
   const { user } = useAuth()
@@ -406,7 +420,11 @@ function HistoryPanel() {
           <span className="grow">
             <Link to={`/warranties/${item.warranty_id}`}>{item.product_name}</Link>
             <span className="muted">
-              {item.counterparty ? (item.kind === 'sent' ? ` to ${item.counterparty}` : ` from ${item.counterparty}`) : ''}
+              {item.counterparty
+                ? ['sent', 'issued'].includes(item.kind)
+                  ? ` to ${item.counterparty}`
+                  : ` from ${item.counterparty}`
+                : ''}
               {' · '}
               {formatDate(item.at, user.date_format)}
             </span>
@@ -461,7 +479,97 @@ function SettingsPanel() {
   )
 }
 
+function BusinessCard({ onEdit }) {
+  const { user } = useAuth()
+  return (
+    <section className="account-card account-wallet connected account-business">
+      <span className="account-wallet-icon">{ICONS.store}</span>
+      <div className="grow">
+        <strong className="account-wallet-title">Business Details</strong>
+        <span className="account-wallet-address">{user.business_name}</span>
+        <span className="account-wallet-status">
+          <span className="dot" /> Retailer account <span className="sep" />
+          {user.registration_number ? `Reg. ${user.registration_number}` : 'No registration number'}
+        </span>
+      </div>
+      <div className="account-wallet-actions">
+        <button type="button" className="account-outline" onClick={onEdit}>
+          {ICONS.pencil} Edit
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function BusinessPanel({ onDone }) {
+  const { user, updateProfile } = useAuth()
+  const [form, setForm] = useState({
+    business_name: user.business_name || '',
+    registration_number: user.registration_number || '',
+  })
+  const [status, run] = useSaver()
+
+  return (
+    <form
+      className="account-form"
+      onSubmit={(e) => {
+        e.preventDefault()
+        run(async () => {
+          await updateProfile({
+            business_name: form.business_name.trim(),
+            registration_number: form.registration_number.trim() || null,
+          })
+          onDone()
+        })
+      }}
+    >
+      <label>
+        Business name
+        <input value={form.business_name} onChange={(e) => setForm({ ...form, business_name: e.target.value })} required />
+      </label>
+      <label>
+        Registration number (optional)
+        <input
+          value={form.registration_number}
+          onChange={(e) => setForm({ ...form, registration_number: e.target.value })}
+          placeholder="e.g. NZBN 9429041234567"
+        />
+      </label>
+      <p className="account-note">The business name is shown to customers on the warranties you issue.</p>
+      {status.error && <p className="error">{status.error}</p>}
+      <button type="submit" disabled={status.busy}>
+        {status.busy ? 'Saving…' : 'Save changes'}
+      </button>
+    </form>
+  )
+}
+
 function HelpPanel() {
+  const { isRetailer } = useAuth()
+  if (isRetailer) {
+    return (
+      <div className="account-help">
+        <details>
+          <summary>How do I issue a warranty?</summary>
+          <p>
+            Add the product under <Link to="/retailer/products">Products</Link>, then use{' '}
+            <Link to="/retailer/issue">Issue warranty</Link> with the buyer's DigiProof email.
+          </p>
+        </details>
+        <details>
+          <summary>Who pays the gas fee for minting?</summary>
+          <p>DigiProof's minting wallet signs and pays for every mint. You can see the fee on each warranty's details.</p>
+        </details>
+        <details>
+          <summary>Can I change a warranty after it's minted?</summary>
+          <p>No. It's recorded on the blockchain, which is what makes it trustworthy to buyers and service centres.</p>
+        </details>
+        <p className="account-note">
+          Still stuck? Email <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+        </p>
+      </div>
+    )
+  }
   return (
     <div className="account-help">
       <details>

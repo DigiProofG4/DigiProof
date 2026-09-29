@@ -10,7 +10,8 @@ export default function Layout({ children }) {
   const { pathname } = useLocation()
   const isLanding = !user && pathname === '/'
   const isVerify = pathname === '/verify'
-  const isOwnerHome = pathname.startsWith('/warranties') || pathname === '/account'
+  const isOwnerHome =
+    pathname.startsWith('/warranties') || pathname === '/account' || ['/retailer', '/retailer/issue', '/retailer/warranties', '/retailer/products'].includes(pathname)
   const isWelcome =
     isVerify || isOwnerHome || (!user && ['/', '/login', '/register'].includes(pathname))
 
@@ -29,8 +30,10 @@ export default function Layout({ children }) {
           {user && isRetailer && (
             <>
               <NavLink to="/retailer" end>
-                Products
+                Dashboard
               </NavLink>
+              <NavLink to="/retailer/products">Products</NavLink>
+              <NavLink to="/retailer/warranties">Warranties</NavLink>
               <NavLink to="/retailer/issue">Issue warranty</NavLink>
             </>
           )}

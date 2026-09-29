@@ -180,7 +180,7 @@ export default function WarrantyDetail() {
   const dateFormat = user?.date_format ?? 'long'
   const today = startOfToday()
   const state = displayState(warranty, today, user?.expiring_soon_days ?? 90)
-  const back = isRetailer ? { to: '/retailer', label: 'Back to Products' } : { to: '/warranties', label: 'Back to My Warranties' }
+  const back = isRetailer ? { to: '/retailer/warranties', label: 'Back to Warranties' } : { to: '/warranties', label: 'Back to My Warranties' }
 
   return (
     <div className="wd">

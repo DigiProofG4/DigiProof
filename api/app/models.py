@@ -58,6 +58,15 @@ class User(Base):
         back_populates="owner", foreign_keys="Warranty.owner_id"
     )
 
+    # Flattened onto the user so the Account page gets them with the profile.
+    @property
+    def business_name(self) -> str | None:
+        return self.retailer.business_name if self.retailer else None
+
+    @property
+    def registration_number(self) -> str | None:
+        return self.retailer.registration_number if self.retailer else None
+
 
 class Retailer(Base):
     """Extra business details for an account whose role is retailer."""

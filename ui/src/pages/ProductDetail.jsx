@@ -60,7 +60,7 @@ export default function ProductDetail() {
   return (
     <div className="stack">
       <p>
-        <Link to="/retailer">← Back to products</Link>
+        <Link to="/retailer/products">← Back to products</Link>
       </p>
 
       <div className="card product-detail">
