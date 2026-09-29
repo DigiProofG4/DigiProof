@@ -10,11 +10,12 @@ import ProductDetail from './pages/ProductDetail.jsx'
 import MyWarranties from './pages/MyWarranties.jsx'
 import WarrantyDetail from './pages/WarrantyDetail.jsx'
 import Verify from './pages/Verify.jsx'
+import Landing from './pages/Landing.jsx'
 
 function Home() {
   const { user, loading } = useAuth()
   if (loading) return <p className="muted">Loading…</p>
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) return <Landing />
   return <Navigate to={user.role === 'retailer' ? '/retailer' : '/warranties'} replace />
 }
 

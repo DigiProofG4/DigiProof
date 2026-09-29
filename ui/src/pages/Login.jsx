@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext.jsx'
+import { ShieldIcon } from '../components/Logo.jsx'
 
 export default function Login() {
   const { login } = useAuth()
@@ -26,9 +27,10 @@ export default function Login() {
   }
 
   return (
-    <div className="card narrow">
-      <h1>Sign in</h1>
-      <p className="muted">Retailers and customers use the same login.</p>
+    <div className="card narrow auth-card">
+      <ShieldIcon size={44} />
+      <h1>Welcome back</h1>
+      <p className="muted">Sign in to your DigiProof account. Retailers and customers use the same login.</p>
 
       <form onSubmit={handleSubmit}>
         <label>
@@ -54,12 +56,12 @@ export default function Login() {
 
         {error && <p className="error">{error}</p>}
 
-        <button type="submit" disabled={busy}>
+        <button type="submit" className="auth-submit" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
 
-      <p className="muted">
+      <p className="muted auth-switch">
         No account yet? <Link to="/register">Register</Link>
       </p>
     </div>
