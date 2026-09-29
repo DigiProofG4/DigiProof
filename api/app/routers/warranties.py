@@ -13,6 +13,7 @@ from app.schemas import TransferRequest, WarrantyDetail, WarrantyIssue, Warranty
 from app.services.blockchain import ChainError, blockchain
 from app.services.notification import notification
 from app.services.storage import storage
+from app.services.wallets import wallets
 
 router = APIRouter(prefix="/warranties", tags=["warranties"])
 
@@ -51,6 +52,7 @@ def issue_warranty(
         )
     if customer.role is not Role.CUSTOMER:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That account is not a customer account")
+    wallets.ensure_wallet(customer)
 
     warranty = Warranty(
         product_id=product.id,
@@ -86,6 +88,7 @@ def issue_warranty(
         serial_number=product.serial_number,
         owner_email=customer.email,
         metadata={"cid": pinned.cid, "uri": pinned.uri},
+        to_address=customer.wallet_address,
     )
     warranty.token_id = minted.token_id
     warranty.tx_hash = minted.tx_hash
@@ -172,11 +175,13 @@ def transfer_warranty(
     if new_owner.id == user.id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That is already the owner")
 
+    wallets.ensure_wallet(new_owner)
     try:
         tx_hash = blockchain.transfer_warranty(
             token_id=warranty.token_id or "",
             to_email=new_owner.email,
             to_address=payload.new_owner_wallet or new_owner.wallet_address,
+            from_account=wallets.derived_account(user),
         )
     except ChainError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
