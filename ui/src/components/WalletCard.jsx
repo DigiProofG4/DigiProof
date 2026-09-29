@@ -4,8 +4,8 @@ import { useAuth } from '../auth/AuthContext.jsx'
 export const WALLET_PATTERN = '0x[0-9a-fA-F]{40}'
 export const WALLET_HINT = 'A wallet address starts with 0x followed by 40 letters and numbers'
 
-// The customer keys in their own wallet once; warranties transferred to them
-// are sent straight to it.
+// Customers get a wallet at sign-up and can swap in their own; warranties
+// transferred to them are sent straight to it.
 export default function WalletCard() {
   const { user, updateWallet } = useAuth()
   const [editing, setEditing] = useState(!user?.wallet_address)
@@ -31,12 +31,18 @@ export default function WalletCard() {
     <div className="card">
       <h2>My wallet</h2>
       {!editing ? (
-        <div className="row-between">
-          <span className="mono wallet">{user.wallet_address}</span>
-          <button type="button" className="secondary" onClick={() => setEditing(true)}>
-            Change
-          </button>
-        </div>
+        <>
+          <div className="row-between">
+            <span className="mono wallet">{user.wallet_address}</span>
+            <button type="button" className="secondary" onClick={() => setEditing(true)}>
+              Change
+            </button>
+          </div>
+          <p className="muted">
+            DigiProof created this wallet when you signed up, and your warranties are sent to it.
+            Use Change to switch to your own wallet app instead.
+          </p>
+        </>
       ) : (
         <>
           <p className="muted">
