@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     chain_rpc_url: str = ""
     contract_address: str = ""
     custodial_wallet_key: str = ""
+    # BIP-39 seed that every customer wallet is derived from (see services/wallets.py).
+    wallet_mnemonic: str = ""
     chain_explorer_tx_base_url: str = "https://sepolia.etherscan.io/tx/"
 
     @property

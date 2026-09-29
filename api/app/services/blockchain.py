@@ -10,8 +10,12 @@ from __future__ import annotations
 import hashlib
 import uuid
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from app.config import settings
+
+if TYPE_CHECKING:
+    from eth_account.signers.local import LocalAccount
 
 CONTRACT_ABI = [
     {
@@ -106,8 +110,14 @@ class BlockchainService:
         contract = provider.eth.contract(address=self.contract_address, abi=CONTRACT_ABI)
         return provider, contract
 
-    def mint_warranty(self, *, serial_number: str, owner_email: str, metadata: dict) -> MintResult:
-        """Mint the proof-of-purchase NFT for a newly issued warranty."""
+    def mint_warranty(
+        self, *, serial_number: str, owner_email: str, metadata: dict, to_address: str | None = None
+    ) -> MintResult:
+        """Mint the proof-of-purchase NFT for a newly issued warranty.
+
+        The custodial wallet signs (it is the authorised minter), but the token
+        goes to the customer's wallet when they have one.
+        """
         if self.is_live:
             metadata_uri = metadata.get("uri") or f"ipfs://{metadata.get('cid', uuid.uuid4().hex)}"
             try:
@@ -118,10 +128,11 @@ class BlockchainService:
                 if not from_address:
                     raise ValueError("Could not derive the custodial wallet address from the configured private key")
 
-                gas_estimate = contract.functions.mintWarranty(from_address, metadata_uri).estimate_gas({
+                recipient = Web3.to_checksum_address(to_address) if to_address else from_address
+                gas_estimate = contract.functions.mintWarranty(recipient, metadata_uri).estimate_gas({
                     "from": from_address,
                 })
-                tx = contract.functions.mintWarranty(from_address, metadata_uri).build_transaction({
+                tx = contract.functions.mintWarranty(recipient, metadata_uri).build_transaction({
                     "from": from_address,
                     "nonce": provider.eth.get_transaction_count(from_address),
                     "gas": gas_estimate,
@@ -151,10 +162,21 @@ class BlockchainService:
             metadata_uri=f"ipfs://placeholder/{uuid.uuid4().hex}",
         )
 
-    def transfer_warranty(self, *, token_id: str, to_email: str, to_address: str | None = None) -> str | None:
+    def transfer_warranty(
+        self,
+        *,
+        token_id: str,
+        to_email: str,
+        to_address: str | None = None,
+        from_account: LocalAccount | None = None,
+    ) -> str | None:
         """Move a token to its new owner and return the transaction hash.
 
-        Without a wallet address the token stays in custody and None comes
+        from_account is the current owner's auto-generated wallet, if they
+        still use it; the API can sign for that one. Tokens minted before
+        customer wallets existed sit in custody and the custodial key moves them.
+
+        Without a wallet address the token stays where it is and None comes
         back: only the off-chain owner changes.
         """
         if self.is_live:
@@ -172,8 +194,13 @@ class BlockchainService:
                 raise ChainError("Could not reach the blockchain. Try again in a moment.") from exc
 
             # Once a token sits in a customer's own wallet only that wallet can
-            # move it; the custodial key has no approval over it.
-            if holder.lower() != from_address.lower():
+            # move it; the custodial key has no approval over it. Auto-generated
+            # wallets are the exception: their key is derived server-side.
+            if from_account is not None and holder.lower() == from_account.address.lower():
+                signer = from_account
+            elif holder.lower() == from_address.lower():
+                signer = None
+            else:
                 raise ChainError(
                     f"This warranty's token is already in wallet {holder}. "
                     "DigiProof can't move it from there; send it from that wallet app instead."
@@ -188,16 +215,24 @@ class BlockchainService:
                 raise ChainError("That wallet address doesn't look right. Copy it again from the wallet app.")
 
             try:
+                from eth_account import Account
+
                 to_address = Web3.to_checksum_address(to_address)
-                tx = contract.functions.safeTransferFrom(
-                    from_address,
-                    to_address,
-                    int(token_id),
-                ).build_transaction({
-                    "from": from_address,
-                    "nonce": provider.eth.get_transaction_count(from_address),
+                custodial = Account.from_key(self.custodial_wallet_key)
+                signer = signer or custodial
+                transfer = contract.functions.safeTransferFrom(signer.address, to_address, int(token_id))
+                # Estimate before any fee fields are set, so an empty wallet doesn't fail the estimate.
+                gas = transfer.estimate_gas({"from": signer.address})
+                gas_price = provider.eth.gas_price
+                if signer is not custodial:
+                    self._top_up_gas(provider, custodial, signer.address, gas * gas_price)
+                tx = transfer.build_transaction({
+                    "from": signer.address,
+                    "nonce": provider.eth.get_transaction_count(signer.address),
+                    "gas": gas,
+                    "gasPrice": gas_price,
                 })
-                signed = provider.eth.account.sign_transaction(tx, private_key=self.custodial_wallet_key)
+                signed = signer.sign_transaction(tx)
                 tx_hash = provider.eth.send_raw_transaction(signed.raw_transaction)
                 provider.eth.wait_for_transaction_receipt(tx_hash)
                 return tx_hash.to_0x_hex()
@@ -208,6 +243,25 @@ class BlockchainService:
 
         digest = hashlib.sha256(f"transfer:{token_id}:{to_email}".encode()).hexdigest()
         return "0x" + digest
+
+    @staticmethod
+    def _top_up_gas(provider, custodial: LocalAccount, address: str, needed_wei: int) -> None:
+        """Auto-generated wallets hold no ETH, so the custodial wallet sends what a transfer costs."""
+        # 20% headroom in case the gas price moves between this and the transfer.
+        needed_wei = needed_wei * 12 // 10
+        balance = provider.eth.get_balance(address)
+        if balance >= needed_wei:
+            return
+        tx = {
+            "to": address,
+            "value": needed_wei - balance,
+            "gas": 21_000,
+            "gasPrice": provider.eth.gas_price,
+            "nonce": provider.eth.get_transaction_count(custodial.address),
+            "chainId": provider.eth.chain_id,
+        }
+        signed = custodial.sign_transaction(tx)
+        provider.eth.wait_for_transaction_receipt(provider.eth.send_raw_transaction(signed.raw_transaction))
 
     def verify_token(self, token_id: str) -> dict:
         """Read a token back from the chain so a claim can be checked independently."""
