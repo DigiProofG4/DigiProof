@@ -71,7 +71,7 @@ CREATE TABLE warranties (
     status                ENUM('pending', 'active', 'expired', 'void') NOT NULL DEFAULT 'pending',
     token_id              VARCHAR(80) NULL,
     tx_hash               VARCHAR(80) NULL,
-    metadata_uri          VARCHAR(255) NULL,
+    metadata_uri          TEXT NULL,
     gas_used              BIGINT NULL,
     gas_price_wei         BIGINT NULL,
     block_number          BIGINT NULL,

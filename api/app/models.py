@@ -123,7 +123,9 @@ class Warranty(Base):
     # Filled in by the blockchain service once minting is wired up.
     token_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
     tx_hash: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    metadata_uri: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # A data: URI with the full token metadata (see services/storage.py), so it
+    # can run to several KB.
+    metadata_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Only set in live-chain mode, from the mint transaction's receipt.
     gas_used: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     gas_price_wei: Mapped[int | None] = mapped_column(BigInteger, nullable=True)

@@ -78,7 +78,7 @@ CREATE TABLE warranties (
     status                VARCHAR2(20) DEFAULT 'pending' NOT NULL,
     token_id              VARCHAR2(80),
     tx_hash               VARCHAR2(80),
-    metadata_uri          VARCHAR2(255),
+    metadata_uri          CLOB,
     created_at            TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
     CONSTRAINT uq_warranties_product UNIQUE (product_id),
     CONSTRAINT ck_warranties_status CHECK (status IN ('pending', 'active', 'expired', 'void')),
