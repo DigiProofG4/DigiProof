@@ -4060,3 +4060,15 @@ button.secondary {
     min-width: 720px;
   }
 }
+
+.wd-certificate {
+  width: 140px;
+  height: 140px;
+  border-radius: 10px;
+  box-shadow: 0 6px 16px rgba(30, 60, 120, 0.15);
+}
+
+.wd-action:disabled {
+  cursor: default;
+  opacity: 0.7;
+}

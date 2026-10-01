@@ -7,6 +7,17 @@ import ProductImage from '../components/ProductImage.jsx'
 import { formatDate } from '../utils/dates.js'
 import { STATE_LABELS, coverLength, displayState, startOfToday, timeLeft } from '../utils/warranty.js'
 
+// The token's metadata is a data: URI (api/app/services/storage.py); read its
+// certificate image without fetching anything.
+function decodeTokenMetadata(uri) {
+  if (!uri || !uri.startsWith('data:application/json;base64,')) return null
+  try {
+    return JSON.parse(atob(uri.split(',', 2)[1]))
+  } catch {
+    return null
+  }
+}
+
 // What the status banner says under the state name; "Your" only for the owner.
 const STATE_TEXT = {
   active: (whose) => `${whose} warranty is valid.`,
@@ -131,6 +142,9 @@ export default function WarrantyDetail() {
   const [step, setStep] = useState('form')
   const [notice, setNotice] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [contractAddress, setContractAddress] = useState(null)
+  const [walletBusy, setWalletBusy] = useState(false)
+  const [walletNote, setWalletNote] = useState(null)
 
   function load() {
     api
@@ -140,6 +154,37 @@ export default function WarrantyDetail() {
   }
 
   useEffect(load, [id])
+  useEffect(() => {
+    api
+      .health()
+      .then((health) => setContractAddress(health.contract_address))
+      .catch(() => {})
+  }, [])
+
+  // Ask MetaMask to show this warranty NFT in the owner's wallet.
+  async function handleAddToWallet() {
+    setWalletNote(null)
+    if (!window.ethereum) {
+      setWalletNote({ error: true, text: 'No wallet found. Install the MetaMask browser extension first.' })
+      return
+    }
+    if (!contractAddress) {
+      setWalletNote({ error: true, text: 'The warranty contract is not configured on the server yet.' })
+      return
+    }
+    setWalletBusy(true)
+    try {
+      const added = await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: { type: 'ERC721', options: { address: contractAddress, tokenId: warranty.token_id } },
+      })
+      if (added) setWalletNote({ error: false, text: 'Added to MetaMask. Look under NFTs in your wallet.' })
+    } catch (err) {
+      setWalletNote({ error: true, text: err.message || 'Could not add it to MetaMask.' })
+    } finally {
+      setWalletBusy(false)
+    }
+  }
 
   function handleReview(event) {
     event.preventDefault()
@@ -177,6 +222,7 @@ export default function WarrantyDetail() {
 
   const { product } = warranty
   const isOwner = user?.id === warranty.owner.id
+  const tokenMetadata = decodeTokenMetadata(warranty.metadata_uri)
   const dateFormat = user?.date_format ?? 'long'
   const today = startOfToday()
   const state = displayState(warranty, today, user?.expiring_soon_days ?? 90)
@@ -295,7 +341,22 @@ export default function WarrantyDetail() {
             </span>
           </div>
         )}
+        {isOwner && warranty.token_id && (
+          <button type="button" className="wd-action" onClick={handleAddToWallet} disabled={walletBusy}>
+            <Icon className="wd-action-icon">
+              <path d="M3 7a2 2 0 0 1 2-2h13v4" />
+              <rect x="3" y="7" width="18" height="13" rx="2" />
+              <path d="M16 13.5h2" />
+            </Icon>
+            <span>
+              <strong>{walletBusy ? 'Adding…' : 'Add to MetaMask'}</strong>
+              <span>Show this warranty NFT in your MetaMask wallet.</span>
+            </span>
+          </button>
+        )}
       </section>
+
+      {walletNote && <p className={walletNote.error ? 'error' : 'account-saved'}>{walletNote.text}</p>}
 
       {isOwner && showTransfer && (
         <section className="wd-card wd-transfer">
@@ -454,6 +515,14 @@ export default function WarrantyDetail() {
                 <>
                   <dt>Terms</dt>
                   <dd>{warranty.terms}</dd>
+                </>
+              )}
+              {tokenMetadata?.image && (
+                <>
+                  <dt>NFT Certificate</dt>
+                  <dd>
+                    <img src={tokenMetadata.image} alt={`${product.name} warranty certificate`} className="wd-certificate" />
+                  </dd>
                 </>
               )}
               <dt>Blockchain Token ID</dt>

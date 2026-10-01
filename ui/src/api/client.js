@@ -58,6 +58,7 @@ async function upload(path, file) {
 }
 
 export const api = {
+  health: () => request('/health'),
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
   me: () => request('/auth/me'),
