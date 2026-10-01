@@ -26,6 +26,8 @@ CREATE TABLE users (
     full_name      VARCHAR2(120) NOT NULL,
     role           VARCHAR2(20)  NOT NULL,
     wallet_address VARCHAR2(64),
+    expiring_soon_days        NUMBER DEFAULT 90 NOT NULL,
+    date_format               VARCHAR2(10) DEFAULT 'long' NOT NULL,
     created_at     TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
     CONSTRAINT uq_users_email UNIQUE (email),
     CONSTRAINT ck_users_role CHECK (role IN ('retailer', 'customer'))
@@ -53,6 +55,7 @@ CREATE TABLE products (
     model            VARCHAR2(120),
     serial_number    VARCHAR2(120) NOT NULL,
     warranty_months  NUMBER DEFAULT 12 NOT NULL,
+    image_url        VARCHAR2(500),
     created_at       TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
     CONSTRAINT uq_products_serial UNIQUE (serial_number),
     CONSTRAINT fk_products_retailer FOREIGN KEY (retailer_id)
@@ -75,7 +78,7 @@ CREATE TABLE warranties (
     status                VARCHAR2(20) DEFAULT 'pending' NOT NULL,
     token_id              VARCHAR2(80),
     tx_hash               VARCHAR2(80),
-    metadata_uri          VARCHAR2(255),
+    metadata_uri          CLOB,
     created_at            TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
     CONSTRAINT uq_warranties_product UNIQUE (product_id),
     CONSTRAINT ck_warranties_status CHECK (status IN ('pending', 'active', 'expired', 'void')),
@@ -96,6 +99,7 @@ CREATE TABLE transfers (
     from_user_id   NUMBER,
     to_user_id     NUMBER NOT NULL,
     tx_hash        VARCHAR2(80),
+    message        VARCHAR2(200),
     transferred_at TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL,
     CONSTRAINT fk_transfers_warranty FOREIGN KEY (warranty_id)
         REFERENCES warranties (id) ON DELETE CASCADE,

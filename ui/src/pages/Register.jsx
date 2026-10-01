@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext.jsx'
+import { ShieldIcon } from '../components/Logo.jsx'
 
 export default function Register() {
   const { register } = useAuth()
@@ -40,13 +41,15 @@ export default function Register() {
   }
 
   return (
-    <div className="card narrow">
+    <div className="card narrow auth-card">
+      <ShieldIcon size={44} />
       <h1>Create an account</h1>
+      <p className="muted">Keep every warranty safe, verifiable and yours.</p>
 
       <form onSubmit={handleSubmit}>
         <fieldset className="roles">
           <legend>I am a</legend>
-          <label className="radio">
+          <label className="radio role-option">
             <input
               type="radio"
               name="role"
@@ -54,9 +57,12 @@ export default function Register() {
               checked={form.role === 'customer'}
               onChange={(e) => update('role', e.target.value)}
             />
-            Customer
+            <span>
+              <strong>Customer</strong>
+              <small>I bought something</small>
+            </span>
           </label>
-          <label className="radio">
+          <label className="radio role-option">
             <input
               type="radio"
               name="role"
@@ -64,7 +70,10 @@ export default function Register() {
               checked={form.role === 'retailer'}
               onChange={(e) => update('role', e.target.value)}
             />
-            Retailer
+            <span>
+              <strong>Retailer</strong>
+              <small>I issue warranties</small>
+            </span>
           </label>
         </fieldset>
 
@@ -118,12 +127,12 @@ export default function Register() {
 
         {error && <p className="error">{error}</p>}
 
-        <button type="submit" disabled={busy}>
+        <button type="submit" className="auth-submit" disabled={busy}>
           {busy ? 'Creating…' : 'Create account'}
         </button>
       </form>
 
-      <p className="muted">
+      <p className="muted auth-switch">
         Already registered? <Link to="/login">Sign in</Link>
       </p>
     </div>

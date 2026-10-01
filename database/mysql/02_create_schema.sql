@@ -22,6 +22,8 @@ CREATE TABLE users (
     full_name      VARCHAR(120) NOT NULL,
     role           ENUM('retailer', 'customer') NOT NULL,
     wallet_address VARCHAR(64) NULL,
+    expiring_soon_days        INT NOT NULL DEFAULT 90,
+    date_format               VARCHAR(10) NOT NULL DEFAULT 'long',
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -46,6 +48,7 @@ CREATE TABLE products (
     model           VARCHAR(120) NULL,
     serial_number   VARCHAR(120) NOT NULL UNIQUE,
     warranty_months INT NOT NULL DEFAULT 12,
+    image_url       VARCHAR(500) NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_products_retailer FOREIGN KEY (retailer_id)
         REFERENCES retailers (id) ON DELETE CASCADE,
@@ -68,7 +71,7 @@ CREATE TABLE warranties (
     status                ENUM('pending', 'active', 'expired', 'void') NOT NULL DEFAULT 'pending',
     token_id              VARCHAR(80) NULL,
     tx_hash               VARCHAR(80) NULL,
-    metadata_uri          VARCHAR(255) NULL,
+    metadata_uri          TEXT NULL,
     gas_used              BIGINT NULL,
     gas_price_wei         BIGINT NULL,
     block_number          BIGINT NULL,
@@ -92,6 +95,7 @@ CREATE TABLE transfers (
     from_user_id   INT NULL,
     to_user_id     INT NOT NULL,
     tx_hash        VARCHAR(80) NULL,
+    message        VARCHAR(200) NULL,
     transferred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_transfers_warranty FOREIGN KEY (warranty_id)
         REFERENCES warranties (id) ON DELETE CASCADE,

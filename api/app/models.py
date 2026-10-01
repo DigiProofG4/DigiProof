@@ -46,12 +46,26 @@ class User(Base):
     role: Mapped[Role] = mapped_column(enum_column(Role), default=Role.CUSTOMER)
     # Optional: a customer who wants the NFT in their own wallet instead of custody.
     wallet_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    # Account settings, edited on the Account page.
+    expiring_soon_days: Mapped[int] = mapped_column(Integer, default=90)
+    date_format: Mapped[str] = mapped_column(String(10), default="long")
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     retailer: Mapped[Retailer | None] = relationship(back_populates="user", uselist=False)
     warranties: Mapped[list[Warranty]] = relationship(
         back_populates="owner", foreign_keys="Warranty.owner_id"
     )
+
+    # Flattened onto the user so the Account page gets them with the profile.
+    @property
+    def business_name(self) -> str | None:
+        return self.retailer.business_name if self.retailer else None
+
+    @property
+    def registration_number(self) -> str | None:
+        return self.retailer.registration_number if self.retailer else None
 
 
 class Retailer(Base):
@@ -79,6 +93,9 @@ class Product(Base):
     model: Mapped[str | None] = mapped_column(String(120), nullable=True)
     serial_number: Mapped[str] = mapped_column(String(120), unique=True, index=True)
     warranty_months: Mapped[int] = mapped_column(Integer, default=12)
+    # Either an external https:// link or /uploads/products/<file> for a photo
+    # uploaded through POST /products/{id}/image.
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     retailer: Mapped[Retailer] = relationship(back_populates="products")
@@ -106,7 +123,9 @@ class Warranty(Base):
     # Filled in by the blockchain service once minting is wired up.
     token_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
     tx_hash: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    metadata_uri: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # A data: URI with the full token metadata (see services/storage.py), so it
+    # can run to several KB.
+    metadata_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Only set in live-chain mode, from the mint transaction's receipt.
     gas_used: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     gas_price_wei: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
@@ -116,6 +135,7 @@ class Warranty(Base):
 
     product: Mapped[Product] = relationship(back_populates="warranty")
     owner: Mapped[User] = relationship(back_populates="warranties", foreign_keys=[owner_id])
+    issued_by: Mapped[Retailer] = relationship(foreign_keys=[issued_by_retailer_id])
     transfers: Mapped[list[Transfer]] = relationship(
         back_populates="warranty", order_by="Transfer.transferred_at"
     )
@@ -131,6 +151,8 @@ class Transfer(Base):
     from_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     to_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     tx_hash: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # Optional note from the previous owner, e.g. "Enjoy your new product!"
+    message: Mapped[str | None] = mapped_column(String(200), nullable=True)
     transferred_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     warranty: Mapped[Warranty] = relationship(back_populates="transfers")

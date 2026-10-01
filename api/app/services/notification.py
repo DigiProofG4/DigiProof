@@ -33,14 +33,23 @@ class NotificationService:
             ),
         )
 
-    def ownership_transferred(self, *, to_email: str, product_name: str) -> None:
+    def ownership_transferred(
+        self,
+        *,
+        to_email: str,
+        product_name: str,
+        from_name: str | None = None,
+        message: str | None = None,
+    ) -> None:
         """Sent to the new owner when a warranty is transferred to them."""
+        sender = f" by {from_name}" if from_name else ""
+        note = f'\n\nThey added a message: "{message}"' if message else ""
         self._send(
             to=to_email,
             subject=f"A warranty for {product_name} was transferred to you",
             body=(
                 f"The proof of purchase for {product_name} has been transferred to your "
-                f"DigiProof account. You can view it after signing in."
+                f"DigiProof account{sender}. You can view it after signing in.{note}"
             ),
         )
 

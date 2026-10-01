@@ -38,6 +38,11 @@ export function AuthProvider({ children }) {
         setUser(result.user)
         return result.user
       },
+      async updateProfile(changes) {
+        const updated = await api.updateMe(changes)
+        setUser(updated)
+        return updated
+      },
       async updateWallet(walletAddress) {
         const updated = await api.updateMe({ wallet_address: walletAddress || null })
         setUser(updated)
