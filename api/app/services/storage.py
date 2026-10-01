@@ -54,7 +54,10 @@ class StorageService:
         image_uri = "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
 
         token_metadata = {
-            "name": f"DigiProof Warranty — {name}",
+            # Leads with the product name/serial, not "DigiProof Warranty",
+            # since wallets truncate this for grid captions — the generic
+            # prefix would make every token look identical at a glance.
+            "name": f"{name} (S/N {serial_number})" if serial_number else name,
             "description": f"Proof of purchase and warranty for {name} (S/N {serial_number}), issued by {retailer}.",
             "image": image_uri,
             "attributes": [
