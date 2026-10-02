@@ -130,7 +130,7 @@ function MoreMenu({ serial }) {
 
 export default function WarrantyDetail() {
   const { id } = useParams()
-  const { user, isRetailer } = useAuth()
+  const { user, isRetailer, updateWallet } = useAuth()
   const [warranty, setWarranty] = useState(null)
   const [error, setError] = useState('')
   const [tab, setTab] = useState('details')
@@ -161,26 +161,41 @@ export default function WarrantyDetail() {
       .catch(() => {})
   }, [])
 
-  // Ask MetaMask to show this warranty NFT in the owner's wallet.
-  async function handleAddToWallet() {
+  // Ask MetaMask to show this warranty NFT in the owner's wallet. `at` says
+  // which button asked, so the result shows next to that button.
+  async function handleAddToWallet(at = 'actions') {
     setWalletNote(null)
     if (!window.ethereum) {
-      setWalletNote({ error: true, text: 'No wallet found. Install the MetaMask browser extension first.' })
+      setWalletNote({ at, error: true, text: 'No wallet found — install MetaMask first' })
       return
     }
     if (!contractAddress) {
-      setWalletNote({ error: true, text: 'The warranty contract is not configured on the server yet.' })
+      setWalletNote({ at, error: true, text: 'Contract not deployed yet' })
       return
     }
     setWalletBusy(true)
     try {
+      if (isOwner) {
+        // MetaMask only shows an NFT held by the selected account, so first
+        // save that account as this user's wallet and move the token into it.
+        const [account] = await window.ethereum.request({ method: 'eth_requestAccounts' })
+        if (account && account.toLowerCase() !== user.wallet_address?.toLowerCase()) {
+          await updateWallet(account)
+        }
+        setWalletNote({ at, error: false, text: 'Moving the NFT to your MetaMask account. This can take up to a minute…' })
+        setWarranty(await api.moveToWallet(id))
+        setWalletNote(null)
+      }
       const added = await window.ethereum.request({
         method: 'wallet_watchAsset',
-        params: { type: 'ERC721', options: { address: contractAddress, tokenId: warranty.token_id } },
+        params: {
+          type: 'ERC721',
+          options: { address: contractAddress, tokenId: warranty.token_id },
+        },
       })
-      if (added) setWalletNote({ error: false, text: 'Added to MetaMask. Look under NFTs in your wallet.' })
+      if (added) setWalletNote({ at, error: false, text: 'Added to MetaMask. Look under NFTs in your wallet.' })
     } catch (err) {
-      setWalletNote({ error: true, text: err.message || 'Could not add it to MetaMask.' })
+      setWalletNote({ at, error: true, text: err.message || 'Could not add to wallet' })
     } finally {
       setWalletBusy(false)
     }
@@ -342,7 +357,7 @@ export default function WarrantyDetail() {
           </div>
         )}
         {isOwner && warranty.token_id && (
-          <button type="button" className="wd-action" onClick={handleAddToWallet} disabled={walletBusy}>
+          <button type="button" className="wd-action" onClick={() => handleAddToWallet()} disabled={walletBusy}>
             <Icon className="wd-action-icon">
               <path d="M3 7a2 2 0 0 1 2-2h13v4" />
               <rect x="3" y="7" width="18" height="13" rx="2" />
@@ -356,7 +371,9 @@ export default function WarrantyDetail() {
         )}
       </section>
 
-      {walletNote && <p className={walletNote.error ? 'error' : 'account-saved'}>{walletNote.text}</p>}
+      {walletNote?.at === 'actions' && (
+        <p className={walletNote.error ? 'error' : 'account-saved'}>{walletNote.text}</p>
+      )}
 
       {isOwner && showTransfer && (
         <section className="wd-card wd-transfer">
@@ -521,7 +538,32 @@ export default function WarrantyDetail() {
                 <>
                   <dt>NFT Certificate</dt>
                   <dd>
-                    <img src={tokenMetadata.image} alt={`${product.name} warranty certificate`} className="wd-certificate" />
+                    {warranty.token_id ? (
+                      <button
+                        type="button"
+                        className="wd-certificate-button"
+                        onClick={() => handleAddToWallet('certificate')}
+                        disabled={walletBusy}
+                        title="Add this NFT to MetaMask"
+                      >
+                        <img src={tokenMetadata.image} alt={`${product.name} warranty certificate`} className="wd-certificate" />
+                      </button>
+                    ) : (
+                      <img src={tokenMetadata.image} alt={`${product.name} warranty certificate`} className="wd-certificate" />
+                    )}
+                    {warranty.token_id && (
+                      <button
+                        type="button"
+                        className="wd-certificate-link"
+                        onClick={() => handleAddToWallet('certificate')}
+                        disabled={walletBusy}
+                      >
+                        {walletBusy ? 'Adding…' : 'Add this NFT to MetaMask'}
+                      </button>
+                    )}
+                    {walletNote?.at === 'certificate' && (
+                      <p className={walletNote.error ? 'error' : 'account-saved'}>{walletNote.text}</p>
+                    )}
                   </dd>
                 </>
               )}

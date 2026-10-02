@@ -203,6 +203,44 @@ def transfer_warranty(
     return warranty
 
 
+@router.post("/{warranty_id}/move-to-wallet", response_model=WarrantyDetail)
+def move_to_wallet(
+    warranty_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Warranty:
+    """The owner pulls the warranty NFT into their saved wallet so MetaMask can show it.
+
+    Ownership doesn't change, only which wallet holds the token on chain.
+    """
+    warranty = db.query(Warranty).filter(Warranty.id == warranty_id).first()
+    if warranty is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Warranty not found")
+    if warranty.owner_id != user.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the current owner can do this")
+    if not warranty.token_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This warranty has not been minted yet")
+    if not user.wallet_address:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Connect a wallet first")
+
+    try:
+        holder = blockchain.verify_token(warranty.token_id).get("owner")
+    except RuntimeError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Could not reach the blockchain. Try again in a moment.") from exc
+    if holder and holder.lower() == user.wallet_address.lower():
+        return warranty
+
+    try:
+        blockchain.transfer_warranty(
+            token_id=warranty.token_id,
+            to_email=user.email,
+            to_address=user.wallet_address,
+        )
+    except ChainError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+    return warranty
+
+
 @router.get("/verify/{serial_number}", response_model=WarrantyOut)
 def verify_by_serial(serial_number: str, db: Session = Depends(get_db)) -> Warranty:
     """Open check by serial number, for a service centre or a second-hand buyer."""

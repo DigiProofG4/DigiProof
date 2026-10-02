@@ -79,5 +79,6 @@ export const api = {
   issueWarranty: (payload) => request('/warranties', { method: 'POST', body: payload }),
   transferWarranty: (id, payload) =>
     request(`/warranties/${id}/transfer`, { method: 'POST', body: payload }),
+  moveToWallet: (id) => request(`/warranties/${id}/move-to-wallet`, { method: 'POST' }),
   verifyBySerial: (serial) => request(`/warranties/verify/${encodeURIComponent(serial)}`),
 }

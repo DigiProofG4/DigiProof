@@ -4,6 +4,7 @@ import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { WALLET_HINT, WALLET_PATTERN } from '../components/WalletCard.jsx'
 import { formatDate } from '../utils/dates.js'
+import { pickMetaMaskAccount } from '../utils/metamask.js'
 
 const SUPPORT_EMAIL = 'blockchaing4@gmail.com'
 
@@ -208,6 +209,16 @@ function WalletPanel() {
     }
   }
 
+  async function connectMetaMask() {
+    setError('')
+    try {
+      const picked = await pickMetaMaskAccount()
+      if (picked) await save(picked)
+    } catch (err) {
+      setError(err.message || 'Could not connect wallet')
+    }
+  }
+
   function disconnect() {
     if (window.confirm('Disconnect this wallet? Warranties transferred to you will stay in DigiProof custody until you add one again.')) {
       save(null)
@@ -236,9 +247,12 @@ function WalletPanel() {
           <>
             <strong className="account-wallet-title">{connected ? 'Change Wallet' : 'No Wallet Connected'}</strong>
             <p className="account-note">
-              Paste the address from your wallet app (for example MetaMask). Warranties transferred to you will
+              Connect MetaMask, or paste the address from your wallet app. Warranties transferred to you will
               be sent to it.
             </p>
+            <button type="button" onClick={connectMetaMask} disabled={busy}>
+              {busy ? 'Connecting…' : 'Connect MetaMask'}
+            </button>
             <form
               className="account-inline-form"
               onSubmit={(e) => {
@@ -270,6 +284,9 @@ function WalletPanel() {
       </div>
       {connected && !editing && (
         <div className="account-wallet-actions">
+          <button type="button" className="account-outline" onClick={connectMetaMask} disabled={busy}>
+            {ICONS.wallet} Switch MetaMask
+          </button>
           <button
             type="button"
             className="account-outline"
