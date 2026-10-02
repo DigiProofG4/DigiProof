@@ -118,11 +118,12 @@ class BlockchainService:
     ) -> MintResult:
         """Mint the proof-of-purchase NFT for a newly issued warranty.
 
-        Mints straight to the customer's own wallet when they have one, so it
-        shows up in their MetaMask immediately. Falls back to the custodial
-        wallet when they don't; a later transfer can still move it to them.
+        Mints directly to the customer's wallet. Live minting is rejected when
+        the customer has no wallet address.
         """
         if self.is_live:
+            if not owner_address:
+                raise ChainError("A buyer wallet address is required to mint this NFT.")
             metadata_uri = metadata.get("uri") or f"ipfs://{metadata.get('cid', uuid.uuid4().hex)}"
             try:
                 from web3 import Web3
@@ -132,7 +133,7 @@ class BlockchainService:
                 if not from_address:
                     raise ValueError("Could not derive the custodial wallet address from the configured private key")
 
-                mint_to = Web3.to_checksum_address(owner_address) if owner_address else from_address
+                mint_to = Web3.to_checksum_address(owner_address)
                 gas_estimate = contract.functions.mintWarranty(mint_to, metadata_uri).estimate_gas({
                     "from": from_address,
                 })
@@ -169,9 +170,11 @@ class BlockchainService:
     def transfer_warranty(self, *, token_id: str, to_email: str, to_address: str | None = None) -> str | None:
         """Move a token to its new owner and return the transaction hash.
 
-        Without a wallet address the token stays in custody and None comes
-        back: only the off-chain owner changes.
+        Transfers require a recipient wallet so the on-chain and database
+        owners remain in sync.
         """
+        if not to_address:
+            raise ChainError("A recipient wallet address is required to transfer this NFT.")
         if self.is_live:
             if not token_id:
                 raise ChainError("This warranty has not been minted yet, so it can't be transferred.")
@@ -190,8 +193,6 @@ class BlockchainService:
             # straight to a customer's wallet need adminTransfer, which lets the
             # minter move a token without the holder's key or an approval.
             in_custody = holder.lower() == from_address.lower()
-            if not to_address:
-                return None
             # Mixed case carries an EIP-55 checksum that catches typos; all
             # lower- or upper-case hex has none to check.
             hex_part = to_address[2:]

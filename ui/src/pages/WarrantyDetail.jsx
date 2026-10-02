@@ -401,8 +401,7 @@ export default function WarrantyDetail() {
               <label className="tf-field">
                 <span className="tf-label">New Owner's Wallet Address</span>
                 <span className="tf-help">
-                  Enter the recipient's wallet address to transfer this warranty NFT. Leave blank to use the wallet
-                  saved on their account.
+                  Leave blank if the new owner has a wallet saved in their account. Otherwise, enter the address that will receive the NFT.
                 </span>
                 <span className="tf-input">
                   <Icon>
@@ -577,6 +576,17 @@ export default function WarrantyDetail() {
                 ) : (
                   'Not minted yet'
                 )}
+              </dd>
+              <dt>Contract</dt>
+              <dd>
+                {warranty.contract_explorer_url ? (
+                  <a href={warranty.contract_explorer_url} target="_blank" rel="noreferrer">
+                    {warranty.contract_address} ↗
+                  </a>
+                ) : (
+                  warranty.contract_address || 'Not configured'
+                )}
+                {warranty.contract_address && <CopyButton value={warranty.contract_address} label="contract address" />}
               </dd>
               {warranty.tx_hash && (
                 <>

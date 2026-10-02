@@ -129,6 +129,7 @@ class WarrantyIssue(BaseModel):
 
     product_id: int
     customer_email: EmailStr
+    customer_wallet_address: str | None = Field(default=None, pattern=WALLET_PATTERN)
     purchase_date: date
     price_paid: float | None = None
     terms: str | None = None
@@ -175,6 +176,18 @@ class WarrantyOut(ORMModel):
     owner: UserOut
     # The shop that sold it, shown to the owner on their dashboard.
     issued_by: RetailerBrief | None = None
+
+    @computed_field
+    @property
+    def contract_address(self) -> str | None:
+        return settings.contract_address or None
+
+    @computed_field
+    @property
+    def contract_explorer_url(self) -> str | None:
+        if not settings.contract_address or not settings.chain_explorer_address_base_url:
+            return None
+        return f"{settings.chain_explorer_address_base_url}{settings.contract_address}"
 
     @computed_field
     @property

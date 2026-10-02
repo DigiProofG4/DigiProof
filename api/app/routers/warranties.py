@@ -51,6 +51,21 @@ def issue_warranty(
         )
     if customer.role is not Role.CUSTOMER:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That account is not a customer account")
+    if (
+        payload.customer_wallet_address
+        and customer.wallet_address
+        and payload.customer_wallet_address.lower() != customer.wallet_address.lower()
+    ):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "That customer already has a different wallet saved. Ask them to update it in their account first.",
+        )
+    customer_wallet_address = customer.wallet_address or payload.customer_wallet_address
+    if not customer_wallet_address:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "A buyer wallet address is required to mint this NFT. Enter their wallet address or ask them to save one in their account.",
+        )
 
     warranty = Warranty(
         product_id=product.id,
@@ -86,8 +101,10 @@ def issue_warranty(
         serial_number=product.serial_number,
         owner_email=customer.email,
         metadata={"cid": pinned.cid, "uri": pinned.uri},
-        owner_address=customer.wallet_address,
+        owner_address=customer_wallet_address,
     )
+    if not customer.wallet_address:
+        customer.wallet_address = customer_wallet_address
     warranty.token_id = minted.token_id
     warranty.tx_hash = minted.tx_hash
     warranty.metadata_uri = pinned.uri
@@ -172,15 +189,32 @@ def transfer_warranty(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No account with that email")
     if new_owner.id == user.id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That is already the owner")
+    if (
+        payload.new_owner_wallet
+        and new_owner.wallet_address
+        and payload.new_owner_wallet.lower() != new_owner.wallet_address.lower()
+    ):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "The new owner already has a different wallet saved. Ask them to update it in their account first.",
+        )
+    to_address = new_owner.wallet_address or payload.new_owner_wallet
+    if not to_address:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "A recipient wallet address is required to transfer this NFT. Ask them to connect or save a wallet first.",
+        )
 
     try:
         tx_hash = blockchain.transfer_warranty(
             token_id=warranty.token_id or "",
             to_email=new_owner.email,
-            to_address=payload.new_owner_wallet or new_owner.wallet_address,
+            to_address=to_address,
         )
     except ChainError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+    if not new_owner.wallet_address:
+        new_owner.wallet_address = to_address
     db.add(
         Transfer(
             warranty_id=warranty.id,
