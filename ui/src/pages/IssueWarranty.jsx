@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import ProductImage from '../components/ProductImage.jsx'
-import { WALLET_HINT, WALLET_PATTERN } from '../components/WalletCard.jsx'
 import { formatDate } from '../utils/dates.js'
 import { coverLength } from '../utils/warranty.js'
 
@@ -44,7 +43,6 @@ export default function IssueWarranty() {
   const [form, setForm] = useState({
     product_id: params.get('product') || '',
     customer_email: '',
-    customer_wallet_address: '',
     purchase_date: today(),
     price_paid: '',
     terms: '',
@@ -74,7 +72,6 @@ export default function IssueWarranty() {
       const warranty = await api.issueWarranty({
         product_id: Number(form.product_id),
         customer_email: form.customer_email.trim(),
-        customer_wallet_address: form.customer_wallet_address.trim() || null,
         purchase_date: form.purchase_date,
         price_paid: form.price_paid ? Number(form.price_paid) : null,
         terms: form.terms.trim() || null,
@@ -147,28 +144,6 @@ export default function IssueWarranty() {
                 value={form.customer_email}
                 onChange={(e) => update('customer_email', e.target.value)}
                 required
-              />
-            </span>
-          </label>
-
-          <label className="tf-field">
-            <span className="tf-label">Buyer Wallet Address</span>
-            <span className="tf-help">
-              Leave blank if the buyer already saved a wallet in their account. Otherwise, enter the address that will receive the NFT.
-            </span>
-            <span className="tf-input">
-              <Icon>
-                <path d="M3 7a2 2 0 0 1 2-2h13v4" />
-                <rect x="3" y="7" width="18" height="13" rx="2" />
-                <path d="M16 13.5h2" />
-              </Icon>
-              <input
-                className="mono"
-                placeholder="0x..."
-                value={form.customer_wallet_address}
-                onChange={(e) => update('customer_wallet_address', e.target.value)}
-                pattern={WALLET_PATTERN}
-                title={WALLET_HINT}
               />
             </span>
           </label>
