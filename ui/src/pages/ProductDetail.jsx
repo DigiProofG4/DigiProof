@@ -113,7 +113,7 @@ export default function ProductDetail() {
                 </>
               ) : (
                 <>
-                  Not sold yet · <Link to="/retailer/issue">Issue a warranty</Link>
+                  Not sold yet · <Link to={`/retailer/issue?product=${product.id}`}>Issue a warranty</Link>
                 </>
               )}
             </dd>
