@@ -9,6 +9,28 @@ import { STATE_LABELS, coverLength, displayState, startOfToday, timeLeft } from 
 
 // The token's metadata is a data: URI (api/app/services/storage.py); read its
 // certificate image without fetching anything.
+// MetaMask can't tell a website whether an NFT is already in the wallet, so
+// remember a successful add in this browser, per token and per wallet.
+function addedKey(contract, tokenId, wallet) {
+  return `digiproof:nft-in-metamask:${contract}:${tokenId}:${wallet}`.toLowerCase()
+}
+
+function wasAdded(key) {
+  try {
+    return localStorage.getItem(key) === '1'
+  } catch {
+    return false
+  }
+}
+
+function rememberAdded(key) {
+  try {
+    localStorage.setItem(key, '1')
+  } catch {
+    // Storage blocked (private window); the link just stays visible.
+  }
+}
+
 function decodeTokenMetadata(uri) {
   if (!uri || !uri.startsWith('data:application/json;base64,')) return null
   try {
@@ -145,6 +167,8 @@ export default function WarrantyDetail() {
   const [contractAddress, setContractAddress] = useState(null)
   const [walletBusy, setWalletBusy] = useState(false)
   const [walletNote, setWalletNote] = useState(null)
+  // Bumped after a successful add so the page re-reads the remembered flag.
+  const [addedVersion, setAddedVersion] = useState(0)
 
   function load() {
     api
@@ -193,7 +217,12 @@ export default function WarrantyDetail() {
           options: { address: contractAddress, tokenId: warranty.token_id },
         },
       })
-      if (added) setWalletNote({ at, error: false, text: 'Added to MetaMask. Look under NFTs in your wallet.' })
+      if (added) {
+        const account = (await window.ethereum.request({ method: 'eth_accounts' }))[0] || user.wallet_address
+        rememberAdded(addedKey(contractAddress, warranty.token_id, account))
+        setAddedVersion((v) => v + 1)
+        setWalletNote({ at: 'added', error: false, text: 'Added to MetaMask. Look under NFTs in your wallet.' })
+      }
     } catch (err) {
       setWalletNote({ at, error: true, text: err.message || 'Could not add to wallet' })
     } finally {
@@ -237,6 +266,11 @@ export default function WarrantyDetail() {
 
   const { product } = warranty
   const isOwner = user?.id === warranty.owner.id
+  // Hide the "add" actions once this owner's wallet already has the NFT.
+  const inMetaMask =
+    addedVersion >= 0 &&
+    Boolean(contractAddress && warranty.token_id && user?.wallet_address) &&
+    wasAdded(addedKey(contractAddress, warranty.token_id, user.wallet_address))
   const tokenMetadata = decodeTokenMetadata(warranty.metadata_uri)
   const dateFormat = user?.date_format ?? 'long'
   const today = startOfToday()
@@ -356,7 +390,7 @@ export default function WarrantyDetail() {
             </span>
           </div>
         )}
-        {isOwner && warranty.token_id && (
+        {isOwner && warranty.token_id && !inMetaMask && (
           <button type="button" className="wd-action" onClick={() => handleAddToWallet()} disabled={walletBusy}>
             <Icon className="wd-action-icon">
               <path d="M3 7a2 2 0 0 1 2-2h13v4" />
@@ -371,6 +405,7 @@ export default function WarrantyDetail() {
         )}
       </section>
 
+      {walletNote?.at === 'added' && <p className="account-saved">{walletNote.text}</p>}
       {walletNote?.at === 'actions' && (
         <p className={walletNote.error ? 'error' : 'account-saved'}>{walletNote.text}</p>
       )}
@@ -538,7 +573,7 @@ export default function WarrantyDetail() {
                   <dt>NFT Certificate</dt>
                   <dd>
                     {/* Only the owner has a wallet to add it to; retailers just see the image. */}
-                    {isOwner && warranty.token_id ? (
+                    {isOwner && warranty.token_id && !inMetaMask ? (
                       <button
                         type="button"
                         className="wd-certificate-button"
@@ -551,7 +586,10 @@ export default function WarrantyDetail() {
                     ) : (
                       <img src={tokenMetadata.image} alt={`${product.name} warranty certificate`} className="wd-certificate" />
                     )}
-                    {isOwner && warranty.token_id && (
+                    {isOwner && warranty.token_id && inMetaMask && (
+                      <p className="account-saved">✓ Added to MetaMask</p>
+                    )}
+                    {isOwner && warranty.token_id && !inMetaMask && (
                       <button
                         type="button"
                         className="wd-certificate-link"
