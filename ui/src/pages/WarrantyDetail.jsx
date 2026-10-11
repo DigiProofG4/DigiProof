@@ -537,7 +537,8 @@ export default function WarrantyDetail() {
                 <>
                   <dt>NFT Certificate</dt>
                   <dd>
-                    {warranty.token_id ? (
+                    {/* Only the owner has a wallet to add it to; retailers just see the image. */}
+                    {isOwner && warranty.token_id ? (
                       <button
                         type="button"
                         className="wd-certificate-button"
@@ -550,7 +551,7 @@ export default function WarrantyDetail() {
                     ) : (
                       <img src={tokenMetadata.image} alt={`${product.name} warranty certificate`} className="wd-certificate" />
                     )}
-                    {warranty.token_id && (
+                    {isOwner && warranty.token_id && (
                       <button
                         type="button"
                         className="wd-certificate-link"
@@ -566,56 +567,61 @@ export default function WarrantyDetail() {
                   </dd>
                 </>
               )}
-              <dt>Blockchain Token ID</dt>
-              <dd>
-                {warranty.token_id ? (
-                  <>
-                    {warranty.token_id}
-                    <CopyButton value={warranty.token_id} label="token ID" />
-                  </>
-                ) : (
-                  'Not minted yet'
-                )}
-              </dd>
-              <dt>Contract</dt>
-              <dd>
-                {warranty.contract_explorer_url ? (
-                  <a href={warranty.contract_explorer_url} target="_blank" rel="noreferrer">
-                    {warranty.contract_address} ↗
-                  </a>
-                ) : (
-                  warranty.contract_address || 'Not configured'
-                )}
-                {warranty.contract_address && <CopyButton value={warranty.contract_address} label="contract address" />}
-              </dd>
-              {warranty.tx_hash && (
+              {/* Chain internals are for the retailer; customers use "View NFT on Blockchain". */}
+              {isRetailer && (
                 <>
-                  <dt>Mint Transaction</dt>
+                  <dt>Blockchain Token ID</dt>
                   <dd>
-                    {warranty.explorer_tx_url ? (
-                      <a href={warranty.explorer_tx_url} target="_blank" rel="noreferrer">
-                        {warranty.tx_hash.slice(0, 10)}…{warranty.tx_hash.slice(-6)} ↗
+                    {warranty.token_id ? (
+                      <>
+                        {warranty.token_id}
+                        <CopyButton value={warranty.token_id} label="token ID" />
+                      </>
+                    ) : (
+                      'Not minted yet'
+                    )}
+                  </dd>
+                  <dt>Contract</dt>
+                  <dd>
+                    {warranty.contract_explorer_url ? (
+                      <a href={warranty.contract_explorer_url} target="_blank" rel="noreferrer">
+                        {warranty.contract_address} ↗
                       </a>
                     ) : (
-                      `${warranty.tx_hash.slice(0, 10)}…${warranty.tx_hash.slice(-6)}`
+                      warranty.contract_address || 'Not configured'
                     )}
-                    <CopyButton value={warranty.tx_hash} label="transaction hash" />
+                    {warranty.contract_address && <CopyButton value={warranty.contract_address} label="contract address" />}
                   </dd>
-                </>
-              )}
-              {warranty.block_number != null && (
-                <>
-                  <dt>Block</dt>
-                  <dd>{warranty.block_number.toLocaleString()}</dd>
-                </>
-              )}
-              {warranty.gas_fee_eth != null && (
-                <>
-                  <dt>Gas Fee</dt>
-                  <dd>
-                    {warranty.gas_fee_eth.toFixed(8)} ETH
-                    <span className="muted"> ({warranty.gas_used.toLocaleString()} gas)</span>
-                  </dd>
+                  {warranty.tx_hash && (
+                    <>
+                      <dt>Mint Transaction</dt>
+                      <dd>
+                        {warranty.explorer_tx_url ? (
+                          <a href={warranty.explorer_tx_url} target="_blank" rel="noreferrer">
+                            {warranty.tx_hash.slice(0, 10)}…{warranty.tx_hash.slice(-6)} ↗
+                          </a>
+                        ) : (
+                          `${warranty.tx_hash.slice(0, 10)}…${warranty.tx_hash.slice(-6)}`
+                        )}
+                        <CopyButton value={warranty.tx_hash} label="transaction hash" />
+                      </dd>
+                    </>
+                  )}
+                  {warranty.block_number != null && (
+                    <>
+                      <dt>Block</dt>
+                      <dd>{warranty.block_number.toLocaleString()}</dd>
+                    </>
+                  )}
+                  {warranty.gas_fee_eth != null && (
+                    <>
+                      <dt>Gas Fee</dt>
+                      <dd>
+                        {warranty.gas_fee_eth.toFixed(8)} ETH
+                        <span className="muted"> ({warranty.gas_used.toLocaleString()} gas)</span>
+                      </dd>
+                    </>
+                  )}
                 </>
               )}
             </dl>
