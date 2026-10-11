@@ -59,6 +59,17 @@ CONTRACT_ABI = [
 ]
 
 
+# web3 7 needs ckzg, which has no Windows ARM64 wheel, so some machines run
+# web3 6 instead. These two helpers paper over the renames between them.
+def _raw_tx(signed) -> bytes:
+    return getattr(signed, "raw_transaction", None) or signed.rawTransaction
+
+
+def _hex(tx_hash) -> str:
+    value = tx_hash.hex()
+    return value if value.startswith("0x") else f"0x{value}"
+
+
 class ChainError(RuntimeError):
     """A chain call failed; the message is safe to show to the user."""
 
@@ -143,12 +154,12 @@ class BlockchainService:
                     "gas": gas_estimate,
                 })
                 signed = provider.eth.account.sign_transaction(tx, private_key=self.custodial_wallet_key)
-                tx_hash = provider.eth.send_raw_transaction(signed.raw_transaction)
+                tx_hash = provider.eth.send_raw_transaction(_raw_tx(signed))
                 receipt = provider.eth.wait_for_transaction_receipt(tx_hash)
                 token_id = contract.functions.totalSupply().call() - 1
                 return MintResult(
                     token_id=str(token_id),
-                    tx_hash=tx_hash.to_0x_hex(),
+                    tx_hash=_hex(tx_hash),
                     metadata_uri=metadata_uri,
                     gas_used=receipt["gasUsed"],
                     gas_price_wei=receipt.get("effectiveGasPrice"),
@@ -211,9 +222,9 @@ class BlockchainService:
                     "nonce": provider.eth.get_transaction_count(from_address),
                 })
                 signed = provider.eth.account.sign_transaction(tx, private_key=self.custodial_wallet_key)
-                tx_hash = provider.eth.send_raw_transaction(signed.raw_transaction)
+                tx_hash = provider.eth.send_raw_transaction(_raw_tx(signed))
                 provider.eth.wait_for_transaction_receipt(tx_hash)
-                return tx_hash.to_0x_hex()
+                return _hex(tx_hash)
             except Exception as exc:
                 if not in_custody:
                     raise ChainError(
